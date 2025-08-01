@@ -17,9 +17,10 @@ class _HomeState extends State<Home> {
   String categoriaSelecionada = "";
   String busca = "";
   String ordenacao = "Data"; // ou "Alfabética"
+  TextEditingController _searchController = TextEditingController();
 
   Future<Map<String, List<TutorialVideo>>> fetchVideos() async {
-    final response = await http.get(Uri.parse('https://raw.githubusercontent.com/davidkalil10/Pilulas-do-Conhecimento/refs/heads/main/assets/pilulas.json?token=GHSAT0AAAAAADIOJFXQ6X5K2NPWHMXINQQG2ENBRGA'));
+    final response = await http.get(Uri.parse('https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
@@ -35,6 +36,12 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _videosFuture = fetchVideos();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -157,11 +164,25 @@ class _HomeState extends State<Home> {
                             // Campo de busca
                             Expanded(
                               child: TextField(
+                                controller: _searchController,
                                 onChanged: (val) => setState(() => busca = val),
                                 style: TextStyle(fontSize: 18),
                                 decoration: InputDecoration(
                                   hintText: 'Buscar vídeos e temas...',
                                   prefixIcon: Icon(Icons.search, color: renaultGold),
+                                  // Adicione um sufixo condicional:
+                                  suffixIcon: busca.isNotEmpty
+                                      ? IconButton(
+                                    icon: Icon(Icons.clear, color: Colors.red[600]),
+                                    onPressed: () {
+                                      setState(() {
+                                        busca = '';
+                                        _searchController.clear();
+                                      });
+                                    },
+                                    tooltip: 'Limpar busca',
+                                  )
+                                      : null,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     borderSide: BorderSide(color: renaultGold, width: 2),
@@ -198,29 +219,34 @@ class _HomeState extends State<Home> {
 
                         // GRID CARDS
                         Expanded(
-                          child: SingleChildScrollView(
-                            child: Wrap(
-                              spacing: 22,      // espaço horizontal entre cards
-                              runSpacing: 20,   // espaço vertical entre cards
-                              children: filtered.map((v) {
-                                return SizedBox(
-                                  width: _getCardWidth(context, columns: 3),
-                                  child: TutorialCardPremium(
-                                    video: v,
-                                    renaultGold: renaultGold,
-                                    onPlay: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (_) =>
-                                            VideoDialog(url: v.url, title: v.titulo),
-                                      );
-                                    },
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Divide a área disponível para 2 colunas
+                              double itemWidth = (constraints.maxWidth - 22) / 2;
+                              return SingleChildScrollView(
+                                child: Wrap(
+                                  spacing: 22,
+                                  runSpacing: 20,
+                                  children: filtered.map((v) {
+                                    return SizedBox(
+                                      width: itemWidth,
+                                      child: TutorialCardPremium(
+                                        video: v,
+                                        renaultGold: renaultGold,
+                                        onPlay: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) => VideoDialog(url: v.url, title: v.titulo),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
+                        )
                       ],
                     ),
                   ),
@@ -241,8 +267,16 @@ class _HomeState extends State<Home> {
   }
 }
 
-double _getCardWidth(BuildContext context, {int columns = 3}) {
+double _getCardWidth(BuildContext context) {
   final screenWidth = MediaQuery.of(context).size.width;
-  final padding = 88; // ajuste conforme seu layout
-  return (screenWidth - padding) / columns - 22; // padding + espaço entre cards
+  final horizontalPadding = 44 * 2; // (igual ao seu Padding na tela)
+  final totalSpacing = 22; // espaço entre os cards (igual ao "spacing" do Wrap)
+  return (screenWidth - horizontalPadding - totalSpacing) / 2;
+}
+
+double _getAspectRatio(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  if (width < 600) return 1.05;  // mobile, cards altos
+  if (width < 1200) return 1.4;  // tablet, cards médios
+  return 2.0;                    // desktop, cards mais baixos
 }
