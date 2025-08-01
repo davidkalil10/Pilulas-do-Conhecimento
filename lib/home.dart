@@ -19,7 +19,7 @@ class _HomeState extends State<Home> {
   String ordenacao = "Data"; // ou "Alfabética"
 
   Future<Map<String, List<TutorialVideo>>> fetchVideos() async {
-    final response = await http.get(Uri.parse('https://gist.githubusercontent.com/davidkalil10/ae2000661d0ee03329703a9b4d213da3/raw/d0ef05912a1baad1c75ef6e8c4c6cc2fa762dc37/pilulas.json'));
+    final response = await http.get(Uri.parse('https://gist.githubusercontent.com/davidkalil10/ae2000661d0ee03329703a9b4d213da3/raw/bb94c5fe94c1601e63b8eb7d92a0e070e155e10f/pilulas.json'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
@@ -39,124 +39,197 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    // Renault Gold
+    final renaultGold = const Color(0xFFF6C700);
+
     return FutureBuilder<Map<String, List<TutorialVideo>>>(
-        future: _videosFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done)
-            return Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData) return Center(child: Text("Falha ao carregar"));
+      future: _videosFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done)
+          return Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) return Center(child: Text("Falha ao carregar"));
 
-          final categorias = snapshot.data!.keys.toList();
-          if (categoriaSelecionada.isEmpty && categorias.isNotEmpty)
-            categoriaSelecionada = categorias[0];
+        final categorias = snapshot.data!.keys.toList();
+        if (categoriaSelecionada.isEmpty && categorias.isNotEmpty)
+          categoriaSelecionada = categorias[0];
 
-          final videos = snapshot.data![categoriaSelecionada] ?? [];
+        final videos = snapshot.data![categoriaSelecionada] ?? [];
 
-          List<TutorialVideo> filtered = videos.where((v) {
-            final b = busca.toLowerCase();
-            return v.titulo.toLowerCase().contains(b) ||
-                v.subtitulo.toLowerCase().contains(b) ||
-                v.tags.any((t) => t.toLowerCase().contains(b));
-          }).toList();
+        List<TutorialVideo> filtered = videos.where((v) {
+          final b = busca.toLowerCase();
+          return v.titulo.toLowerCase().contains(b) ||
+              v.subtitulo.toLowerCase().contains(b) ||
+              v.tags.any((t) => t.toLowerCase().contains(b));
+        }).toList();
 
-          if (ordenacao == "Alfabética") {
-            filtered.sort((a, b) => a.titulo.compareTo(b.titulo));
-          } else {
-            filtered.sort((a, b) {
-              // dataAtualizacao = "dd/MM/yyyy"
-              final d1 = _parseBrazilDate(a.dataAtualizacao);
-              final d2 = _parseBrazilDate(b.dataAtualizacao);
-              return d2.compareTo(d1);
-            });
-          }
+        if (ordenacao == "Alfabética") {
+          filtered.sort((a, b) => a.titulo.compareTo(b.titulo));
+        } else {
+          filtered.sort((a, b) => _parseBrazilDate(b.dataAtualizacao).compareTo(_parseBrazilDate(a.dataAtualizacao)));
+        }
 
-          return Scaffold(
-            backgroundColor: Colors.grey[200],
-            body: SafeArea(
-              child: Row(
-                children: [
-                  // Menu lateral com as categorias
-                  Container(
-                    width: 140,
-                    color: Colors.blueGrey[50],
-                    child: ListView(
-                      children: categorias.map((cat) {
+        return Scaffold(
+          backgroundColor: Colors.grey[100],
+          body: SafeArea(
+            child: Row(
+              children: [
+                // MENU LATERAL
+                Container(
+                  width: 160,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    border: Border(
+                      right: BorderSide(width: 1.5, color: renaultGold),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      // Mini logo Renault
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.amber[600],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Image.asset(
+                            'assets/logo_renault.png',
+                            height: 36,
+                          ),
+                        ),
+                      ),
+                      ...categorias.map((cat) {
                         final selected = cat == categoriaSelecionada;
                         return ListTile(
                           selected: selected,
-                          leading: Icon(Icons.folder, color: selected ? Colors.blue : null),
-                          title: Text(cat, style: TextStyle(fontWeight: FontWeight.bold)),
+                          leading: Icon(Icons.folder_open, color: selected ? renaultGold : Colors.white),
+                          title: Text(
+                            cat,
+                            style: TextStyle(
+                              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                              color: selected ? renaultGold : Colors.white,
+                              fontSize: 19,
+                            ),
+                          ),
+                          tileColor: selected ? Colors.grey[850] : null,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           onTap: () => setState(() => categoriaSelecionada = cat),
                         );
                       }).toList(),
-                    ),
+                    ],
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          /// Barra de Busca e opções de ordenação
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  onChanged: (val) => setState(() => busca = val),
-                                  decoration: InputDecoration(
-                                    hintText: 'Buscar vídeos...',
-                                    prefixIcon: Icon(Icons.search),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    fillColor: Colors.white,
-                                    filled: true,
+                ),
+                // CONTEÚDO PRINCIPAL
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 44, vertical: 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// -- Título e Subtítulo
+                        Text(
+                          "Pílulas do Conhecimento.",
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 40,
+                            color: renaultGold,
+                            letterSpacing: 1.3,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          "Sua dose diária de aprendizado sobre seu novo Renault!",
+                          style: TextStyle(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 22,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        SizedBox(height: 25),
+
+                        /// -- Barra de Busca e Ordenação
+                        Row(
+                          children: [
+                            // Campo de busca
+                            Expanded(
+                              child: TextField(
+                                onChanged: (val) => setState(() => busca = val),
+                                style: TextStyle(fontSize: 18),
+                                decoration: InputDecoration(
+                                  hintText: 'Buscar vídeos e temas...',
+                                  prefixIcon: Icon(Icons.search, color: renaultGold),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(color: renaultGold, width: 2),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 4),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(color: renaultGold, width: 2),
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 16),
-                              DropdownButton(
-                                value: ordenacao,
-                                items: [
-                                  DropdownMenuItem(child: Text("Data"), value: "Data"),
-                                  DropdownMenuItem(child: Text("Alfabética"), value: "Alfabética"),
+                            ),
+                            SizedBox(width: 18),
+                            // Botão de ordenação, agora bem claro
+                            PopupMenuButton<String>(
+                              icon: Row(
+                                children: [
+                                  Icon(Icons.sort, color: renaultGold),
+                                  SizedBox(width: 6),
+                                  Text("Ordenar", style: TextStyle(color: renaultGold, fontWeight: FontWeight.bold)),
                                 ],
-                                onChanged: (val) => setState(() => ordenacao = val as String),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 24),
-                          /// Grid de cards
-                          Expanded(
-                            child: GridView.builder(
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 16/9,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                              ),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, i) {
-                                final v = filtered[i];
-                                return TutorialCard(
-                                  video: v,
-                                  onTap: () => showDialog(
-                                    context: context,
-                                    builder: (_) => VideoDialog(url: v.url, title: v.titulo),
+                              onSelected: (v) => setState(() => ordenacao = v),
+                              itemBuilder: (ctx) => [
+                                PopupMenuItem(child: Text("Por Data"), value: "Data"),
+                                PopupMenuItem(child: Text("A-Z"), value: "Alfabética"),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+
+                        // GRID CARDS
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Wrap(
+                              spacing: 22,      // espaço horizontal entre cards
+                              runSpacing: 20,   // espaço vertical entre cards
+                              children: filtered.map((v) {
+                                return SizedBox(
+                                  width: _getCardWidth(context, columns: 3),
+                                  child: TutorialCardPremium(
+                                    video: v,
+                                    renaultGold: renaultGold,
+                                    onPlay: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) =>
+                                            VideoDialog(url: v.url, title: v.titulo),
+                                      );
+                                    },
                                   ),
                                 );
-                              },
+                              }).toList(),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  )
-                ],
-              ),
+                  ),
+                )
+              ],
             ),
-          );
-        }
+          ),
+        );
+      },
     );
   }
 
@@ -166,4 +239,10 @@ class _HomeState extends State<Home> {
         int.parse(p[2]), int.parse(p[1]), int.parse(p[0])
     );
   }
+}
+
+double _getCardWidth(BuildContext context, {int columns = 3}) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final padding = 88; // ajuste conforme seu layout
+  return (screenWidth - padding) / columns - 22; // padding + espaço entre cards
 }

@@ -1,0 +1,67 @@
+{
+  "Boreal": [
+    {
+      "Titulo": "Ajuste Lombar",
+      "Subtitulo": "Como ajustar a lombar para seu conforto",
+      "Tags": [
+        "assento",
+        "lombar",
+        "bancos"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "31/07/2025"
+    },
+    {
+      "Titulo": "Ativando a massagem",
+      "Subtitulo": "Como utilizar a função massagem",
+      "Tags": [
+        "assento",
+        "massagem",
+        "conforto"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "30/07/2025"
+    },
+    {
+      "Titulo": "Modo conforto",
+      "Subtitulo": "Como ativar o modo conforto ao entrar ou sair do veículo",
+      "Tags": [
+        "assento",
+        "ajustes",
+        "conforto"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "30/06/2025"
+    }
+  ],
+  "Kardian": [
+    {
+      "Titulo": "Luz Ambiente",
+      "Subtitulo": "Como personalizar as luzes internas do seu carro",
+      "Tags": [
+        "luz ambiente",
+        "cores",
+        "personalização"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "15/07/2025"
+    },
+    {
+      "Titulo": "Conhecendo o AEBS",
+      "Subtitulo": "Como ativar e se proteger com o ADAS AEBS",
+      "Tags": [
+        "ADAS",
+        "segurança",
+        "AEBS",
+        "frenagem de emergência"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "16/07/2025"
+    }
+  ]
+}
