@@ -19,7 +19,7 @@ class _HomeState extends State<Home> {
   String ordenacao = "Data"; // ou "Alfabética"
 
   Future<Map<String, List<TutorialVideo>>> fetchVideos() async {
-    final response = await http.get(Uri.parse('https://gist.githubusercontent.com/davidkalil10/ae2000661d0ee03329703a9b4d213da3/raw/bb94c5fe94c1601e63b8eb7d92a0e070e155e10f/pilulas.json'));
+    final response = await http.get(Uri.parse('https://raw.githubusercontent.com/davidkalil10/Pilulas-do-Conhecimento/refs/heads/main/assets/pilulas.json?token=GHSAT0AAAAAADIOJFXQ6X5K2NPWHMXINQQG2ENBRGA'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);

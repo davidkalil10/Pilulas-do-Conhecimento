@@ -44,7 +44,22 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-                  child: Container(
+                  child: widget.video.thumbnail.isNotEmpty
+                      ? Image.network(
+                    widget.video.thumbnail,
+                    width: double.infinity,
+                    height: 110,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      // Se não carregar, usa fundo cinza
+                      return Container(
+                        width: double.infinity,
+                        height: 110,
+                        color: Colors.grey[800],
+                      );
+                    },
+                  )
+                      : Container(
                     width: double.infinity,
                     height: 110,
                     color: Colors.grey[800],

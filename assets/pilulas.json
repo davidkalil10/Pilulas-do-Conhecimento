@@ -63,5 +63,45 @@
       "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
       "data_atualizacao": "16/07/2025"
     }
+  ],
+  "New Koleos": [
+    {
+      "Titulo": "Assistente de estacionamento",
+      "Subtitulo": "Saiba como ativar e utilizar o assistente de estacionamento",
+      "Tags": [
+        "assistente de estacionamento",
+        "ADAS",
+        "auxilio"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "14/07/2025"
+    },
+    {
+      "Titulo": "Ajustando o teto solar",
+      "Subtitulo": "Entenda todos os modos de ajustes disponíveis para o teto solar",
+      "Tags": [
+        "conforto",
+        "teto solar",
+        "ajustes",
+        "ativação teto solar"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "16/06/2025"
+    },
+    {
+      "Titulo": "OK Google, me ensine sobre meu carro",
+      "Subtitulo": "Aprenda os principais comandos de voz disponíveis no seu Google assistente",
+      "Tags": [
+        "GAS",
+        "google",
+        "comandos de voz",
+        "assistente de voz"
+      ],
+      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
+      "data_atualizacao": "16/05/2025"
+    }
   ]
 }
