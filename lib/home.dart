@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pilulasdoconhecimento/models/categoria.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
 import 'package:pilulasdoconhecimento/widgets/tutorial_card.dart';
 import 'package:pilulasdoconhecimento/widgets/video_player.dart';
@@ -18,14 +19,17 @@ class _HomeState extends State<Home> {
   String busca = "";
   String ordenacao = "Data"; // ou "Alfabética"
   TextEditingController _searchController = TextEditingController();
+  late Future<Map<String, Categoria>> _categoriasFuture;
 
-  Future<Map<String, List<TutorialVideo>>> fetchVideos() async {
-    final response = await http.get(Uri.parse('https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json'));
-
+  Future<Map<String, Categoria>> fetchCategorias() async {
+    final response = await http.get(
+      Uri.parse('https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulasv.json'),
+    );
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
+      // Agora 'value' é um MAP e não mais List!
       return data.map((key, value) =>
-          MapEntry(key, (value as List).map((e) => TutorialVideo.fromJson(e)).toList())
+          MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>))
       );
     } else {
       throw Exception('Falha ao carregar os vídeos');
@@ -35,7 +39,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _videosFuture = fetchVideos();
+    _categoriasFuture = fetchCategorias();
   }
 
   @override
@@ -48,19 +52,19 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     // Renault Gold
     final renaultGold = const Color(0xFFF6C700);
-
-    return FutureBuilder<Map<String, List<TutorialVideo>>>(
-      future: _videosFuture,
+    return FutureBuilder<Map<String, Categoria>>(
+      future: _categoriasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done)
           return Center(child: CircularProgressIndicator());
         if (!snapshot.hasData) return Center(child: Text("Falha ao carregar"));
+        final categorias = snapshot.data!;
+        final categoriaNomes = categorias.keys.toList();
+        if (categoriaSelecionada.isEmpty && categoriaNomes.isNotEmpty)
+          categoriaSelecionada = categoriaNomes[0];
 
-        final categorias = snapshot.data!.keys.toList();
-        if (categoriaSelecionada.isEmpty && categorias.isNotEmpty)
-          categoriaSelecionada = categorias[0];
-
-        final videos = snapshot.data![categoriaSelecionada] ?? [];
+        final categoriaAtual = categorias[categoriaSelecionada]!;
+        final videos = categoriaAtual.videos;
 
         List<TutorialVideo> filtered = videos.where((v) {
           final b = busca.toLowerCase();
@@ -107,22 +111,57 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                       ),
-                      ...categorias.map((cat) {
+                      ...categoriaNomes.map((cat) {
                         final selected = cat == categoriaSelecionada;
-                        return ListTile(
-                          selected: selected,
-                          leading: Icon(Icons.folder_open, color: selected ? renaultGold : Colors.white),
-                          title: Text(
-                            cat,
-                            style: TextStyle(
-                              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                              color: selected ? renaultGold : Colors.white,
-                              fontSize: 19,
+                        final thumbnail = categorias[cat]!.thumbnail;
+                        return InkWell(
+                          onTap: () => setState(() => categoriaSelecionada = cat),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: selected ? Colors.grey[850] : null,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              children: [
+                                // Imagem da categoria
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: thumbnail.isNotEmpty
+                                      ? Image.network(
+                                    thumbnail,
+                                    width: 72, // Aumentei o tamanho para um visual melhor
+                                    height: 54,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 72,
+                                      height: 54,
+                                      color: Colors.grey[700],
+                                      child: Icon(Icons.no_photography, color: Colors.white54),
+                                    ),
+                                  )
+                                  // Ícone padrão se não houver thumbnail
+                                      : Icon(Icons.directions_car,
+                                      size: 50,
+                                      color: selected ? renaultGold : Colors.white70),
+                                ),
+                                const SizedBox(height: 10), // Espaçamento entre imagem e texto
+
+                                // Nome da categoria
+                                Text(
+                                  cat,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                                    color: selected ? renaultGold : Colors.white,
+                                    fontSize: 17, // Ajuste o tamanho da fonte se necessário
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          tileColor: selected ? Colors.grey[850] : null,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          onTap: () => setState(() => categoriaSelecionada = cat),
                         );
                       }).toList(),
                     ],
@@ -157,7 +196,6 @@ class _HomeState extends State<Home> {
                           ),
                         ),
                         SizedBox(height: 25),
-
                         /// -- Barra de Busca e Ordenação
                         Row(
                           children: [
@@ -170,7 +208,6 @@ class _HomeState extends State<Home> {
                                 decoration: InputDecoration(
                                   hintText: 'Buscar vídeos e temas...',
                                   prefixIcon: Icon(Icons.search, color: renaultGold),
-                                  // Adicione um sufixo condicional:
                                   suffixIcon: busca.isNotEmpty
                                       ? IconButton(
                                     icon: Icon(Icons.clear, color: Colors.red[600]),
@@ -198,7 +235,6 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             SizedBox(width: 18),
-                            // Botão de ordenação, agora bem claro
                             PopupMenuButton<String>(
                               icon: Row(
                                 children: [
@@ -216,12 +252,10 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                         SizedBox(height: 20),
-
                         // GRID CARDS
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              // Divide a área disponível para 2 colunas
                               double itemWidth = (constraints.maxWidth - 22) / 2;
                               return SingleChildScrollView(
                                 child: Wrap(

@@ -1,107 +1,84 @@
 {
-  "Boreal": [
-    {
-      "Titulo": "Ajuste Lombar",
-      "Subtitulo": "Como ajustar a lombar para seu conforto",
-      "Tags": [
-        "assento",
-        "lombar",
-        "bancos"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "31/07/2025"
-    },
-    {
-      "Titulo": "Ativando a massagem",
-      "Subtitulo": "Como utilizar a função massagem",
-      "Tags": [
-        "assento",
-        "massagem",
-        "conforto"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "30/07/2025"
-    },
-    {
-      "Titulo": "Modo conforto",
-      "Subtitulo": "Como ativar o modo conforto ao entrar ou sair do veículo",
-      "Tags": [
-        "assento",
-        "ajustes",
-        "conforto"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "30/06/2025"
-    }
-  ],
-  "Kardian": [
-    {
-      "Titulo": "Luz Ambiente",
-      "Subtitulo": "Como personalizar as luzes internas do seu carro",
-      "Tags": [
-        "luz ambiente",
-        "cores",
-        "personalização"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "15/07/2025"
-    },
-    {
-      "Titulo": "Conhecendo o AEBS",
-      "Subtitulo": "Como ativar e se proteger com o ADAS AEBS",
-      "Tags": [
-        "ADAS",
-        "segurança",
-        "AEBS",
-        "frenagem de emergência"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "16/07/2025"
-    }
-  ],
-  "New Koleos": [
-    {
-      "Titulo": "Assistente de estacionamento",
-      "Subtitulo": "Saiba como ativar e utilizar o assistente de estacionamento",
-      "Tags": [
-        "assistente de estacionamento",
-        "ADAS",
-        "auxilio"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "14/07/2025"
-    },
-    {
-      "Titulo": "Ajustando o teto solar",
-      "Subtitulo": "Entenda todos os modos de ajustes disponíveis para o teto solar",
-      "Tags": [
-        "conforto",
-        "teto solar",
-        "ajustes",
-        "ativação teto solar"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "16/06/2025"
-    },
-    {
-      "Titulo": "OK Google, me ensine sobre meu carro",
-      "Subtitulo": "Aprenda os principais comandos de voz disponíveis no seu Google assistente",
-      "Tags": [
-        "GAS",
-        "google",
-        "comandos de voz",
-        "assistente de voz"
-      ],
-      "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      "thumbnail":"https://png.pngtree.com/png-clipart/20230818/original/pngtree-video-tutorials-icon-concept-picture-image_8024906.png",
-      "data_atualizacao": "16/05/2025"
-    }
-  ]
+  "Boreal": {
+    "categoria_thumbnail": "https://i.ibb.co/0ySwP3vp/Boreal.png",
+    "videos": [
+      {
+        "Titulo": "Ajuste Lombar",
+        "Subtitulo": "Como ajustar a lombar para seu conforto",
+        "Tags": ["assento", "lombar", "bancos"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://picsum.photos/seed/picsum/300/200",
+        "data_atualizacao": "31/07/2025"
+      },
+      {
+        "Titulo": "Ativando a massagem",
+        "Subtitulo": "Como utilizar a função massagem",
+        "Tags": ["assento", "massagem", "conforto"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://newblogs.correiobraziliense.com.br/multieixos/wp-content/uploads/sites/6/2025/07/Renault-Boreal.png",
+        "data_atualizacao": "30/07/2025"
+      },
+      {
+        "Titulo": "Modo conforto",
+        "Subtitulo": "Como ativar o modo conforto ao entrar ou sair do veículo",
+        "Tags": ["assento", "ajustes", "conforto"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://newblogs.correiobraziliense.com.br/multieixos/wp-content/uploads/sites/6/2025/07/Renault-Boreal.png",
+        "data_atualizacao": "30/06/2025"
+      }
+    ]
+  },
+
+  "Kardian": {
+    "categoria_thumbnail": "https://i.ibb.co/jbbPCMp/Kardian.png",
+    "videos": [
+      {
+        "Titulo": "Luz Ambiente",
+        "Subtitulo": "Como personalizar as luzes internas do seu carro",
+        "Tags": ["luz ambiente", "cores", "personalização"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://picsum.photos/seed/picsum/300/200",
+        "data_atualizacao": "15/07/2025"
+      },
+      {
+        "Titulo": "Conhecendo o AEBS",
+        "Subtitulo": "Como ativar e se proteger com o ADAS AEBS",
+        "Tags": ["ADAS", "segurança", "AEBS", "frenagem de emergência"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://storage.googleapis.com/dealersites-content/dealersites/vehicles/models/renault/foto730_40979.webp",
+        "data_atualizacao": "16/07/2025"
+      }
+    ]
+  },
+
+  "New Koleos": {
+    "categoria_thumbnail": "https://i.ibb.co/tTKNZGv7/Grand-Koleos.png",
+    "videos": [
+      {
+        "Titulo": "Assistente de estacionamento",
+        "Subtitulo": "Saiba como ativar e utilizar o assistente de estacionamento",
+        "Tags": ["assistente de estacionamento", "ADAS", "auxilio"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://picsum.photos/seed/picsum/300/200",
+        "data_atualizacao": "14/07/2025"
+      },
+      {
+        "Titulo": "Ajustando o teto solar",
+        "Subtitulo": "Entenda todos os modos de ajustes disponíveis para o teto solar",
+        "Tags": ["conforto", "teto solar", "ajustes", "ativação teto solar"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://images.carexpert.com.au/resize/1920/-/cms/v1/media/2024-06-renault-grand-koleos-9.png",
+        "data_atualizacao": "16/06/2025"
+      },
+      {
+        "Titulo": "OK Google, me ensine sobre meu carro",
+        "Subtitulo": "Aprenda os principais comandos de voz disponíveis no seu Google assistente",
+        "Tags": ["GAS", "google", "comandos de voz", "assistente de voz"],
+        "URL": "https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4",
+        "thumbnail":"https://images.carexpert.com.au/resize/1920/-/cms/v1/media/2024-06-renault-grand-koleos-9.png",
+        "data_atualizacao": "16/05/2025"
+      }
+    ]
+  }
 }
+
