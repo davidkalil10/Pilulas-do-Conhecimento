@@ -185,7 +185,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 7),
+                  SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
