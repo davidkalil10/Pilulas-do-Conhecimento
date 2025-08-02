@@ -1,0 +1,45 @@
+name: Deploy Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # Garanta que este é o nome da sua branch principal
+
+# Permissões para que a Action possa escrever na branch gh-pages
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Pega o código do seu repositório
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Use uma versão mais genérica ou a que você usa localmente
+          flutter-version: '3.32.2' # Ou '3.19.x', etc.
+          channel: 'stable'
+          cache: true
+
+      # 3. Instala as dependências (APENAS na raiz)
+      - name: Get dependencies
+        run: flutter pub get
+
+      # 4. Gera a build do site (NA RAIZ do projeto)
+      - name: Build web
+        run: flutter build web --release --base-href /Pilulas-do-Conhecimento/
+
+      # 5. Faz o deploy para a branch gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # O diretório correto da build é ./build/web
+          publish_dir: ./build/web
+
