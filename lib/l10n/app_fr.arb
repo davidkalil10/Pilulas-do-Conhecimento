@@ -1,0 +1,11 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Pilules de Savoir",
+  "appSubtitle": "Votre dose quotidienne d'apprentissage sur votre nouvelle Renault !",
+  "searchHint": "Rechercher des vidéos et des sujets...",
+  "sortButton": "Trier par",
+  "sortByDate": "Par Date",
+  "sortByAlphabet": "A-Z",
+  "updatedOn": "Mis à jour le",
+  "closeButton": "Fermer"
+}

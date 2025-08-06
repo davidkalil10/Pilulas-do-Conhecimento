@@ -1,0 +1,11 @@
+{
+  "@@locale": "pt",
+  "appTitle": "Pílulas do Conhecimento",
+  "appSubtitle": "Sua dose diária de aprendizado sobre seu novo Renault!",
+  "searchHint": "Buscar vídeos e temas...",
+  "sortButton": "Ordenar",
+  "sortByDate": "Por Data",
+  "sortByAlphabet": "A-Z",
+  "updatedOn": "Atualizado em",
+  "closeButton": "Fechar"
+}

@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "appTitle": "Knowledge Pills",
+  "appSubtitle": "Your daily dose of learning about your new Renault!",
+  "searchHint": "Search videos and topics...",
+  "sortButton": "Sort by",
+  "sortByDate": "By Date",
+  "sortByAlphabet": "A-Z",
+  "updatedOn": "Updated on",
+  "closeButton": "Close"
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
 class TutorialCardPremium extends StatefulWidget {
   final TutorialVideo video;
@@ -90,7 +91,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                 mainAxisSize: isDesktop ? MainAxisSize.min : MainAxisSize.max,
                 children: [
                   Text(
-                    widget.video.titulo,
+                    widget.video.getTitulo(context),
                     style: TextStyle(
                       color: widget.renaultGold,
                       fontWeight: FontWeight.bold,
@@ -106,7 +107,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.video.subtitulo,
+                        widget.video.getSubtitulo(context),
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -116,18 +117,18 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                       Wrap(
                         spacing: 5,
                         runSpacing: 3,
-                        children: widget.video.tags
+                        children: widget.video.getTags(context)
                             .map((t) => Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          margin: EdgeInsets.only(bottom: 3),
+                          padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(bottom: 3),
                           decoration: BoxDecoration(
                             color: widget.renaultGold.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            t,
-                            style: TextStyle(fontSize: 10, color: Colors.black),
+                            t, // 't' aqui já é a tag traduzida (ex: "seat", "asiento", "siège")
+                            style: const TextStyle(fontSize: 10, color: Colors.black),
                           ),
                         ))
                             .toList(),
@@ -138,7 +139,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                   // MOBILE/TABLET: modo compact/expand
                       : !expanded
                       ? Text(
-                    widget.video.subtitulo,
+                    widget.video.getSubtitulo(context), // Pega o subtítulo no idioma do dispositivo
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 13,
@@ -153,7 +154,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.video.subtitulo,
+                            widget.video.getSubtitulo(context), // Pega o subtítulo no idioma do dispositivo
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -163,19 +164,18 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                           Wrap(
                             spacing: 5,
                             runSpacing: 3,
-                            children: widget.video.tags
+                            children: widget.video.getTags(context)
                                 .map((t) => Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              margin: EdgeInsets.only(bottom: 3),
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              margin: const EdgeInsets.only(bottom: 3),
                               decoration: BoxDecoration(
-                                color: widget.renaultGold
-                                    .withOpacity(0.9),
+                                color: widget.renaultGold.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                t,
-                                style: TextStyle(fontSize: 10, color: Colors.black),
+                                t, // 't' aqui já é a tag traduzida (ex: "seat", "asiento", "siège")
+                                style: const TextStyle(fontSize: 10, color: Colors.black),
                               ),
                             ))
                                 .toList(),
@@ -190,7 +190,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Atualizado: ${widget.video.dataAtualizacao}",
+                        "${AppLocalizations.of(context)!.updatedOn}: ${widget.video.dataAtualizacao}", // <-- CORRIGIDO",
                         style: TextStyle(
                           fontSize: 10,
                           color: widget.renaultGold.withOpacity(0.8),

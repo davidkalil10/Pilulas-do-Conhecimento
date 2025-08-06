@@ -1,0 +1,11 @@
+{
+  "@@locale": "es",
+  "appTitle": "Píldoras de Conocimiento",
+  "appSubtitle": "¡Tu dosis diaria de aprendizaje sobre tu nuevo Renault!",
+  "searchHint": "Buscar videos y temas...",
+  "sortButton": "Ordenar por",
+  "sortByDate": "Por Fecha",
+  "sortByAlphabet": "A-Z",
+  "updatedOn": "Actualizado el",
+  "closeButton": "Cerrar"
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pilulasdoconhecimento/home.dart';
+import 'package:pilulasdoconhecimento/l10n/app_localizations.dart'; // Import relativo ao seu projeto
 
 void main() {
   runApp(const MyApp());
@@ -17,6 +18,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const Home(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
     );
   }

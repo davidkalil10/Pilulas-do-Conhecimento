@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
+import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoDialog extends StatefulWidget {
@@ -102,7 +103,7 @@ class _VideoDialogState extends State<VideoDialog> {
       ),
       actions: [
         TextButton(
-          child: const Text("FECHAR"),
+          child: Text(AppLocalizations.of(context)!.closeButton), // <-- CORRIGIDO,
           onPressed: () {
             Navigator.of(context).pop();
           },

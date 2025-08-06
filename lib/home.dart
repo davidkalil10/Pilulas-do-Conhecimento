@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/categoria.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
 import 'package:pilulasdoconhecimento/widgets/tutorial_card.dart';
@@ -42,7 +43,7 @@ class _HomeState extends State<Home> {
 
   Future<Map<String, Categoria>> fetchCategorias() async {
     final response = await http.get(Uri.parse(
-        'https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulasv.json')); // URL CORRIGIDA PARA SEU REPO
+        'https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json')); // URL CORRIGIDA PARA SEU REPO
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
       return data.map((key, value) =>
@@ -92,7 +93,10 @@ class _HomeState extends State<Home> {
           // Adiciona uma AppBar com botão para o Drawer no layout mobile
           appBar: isMobile
               ? AppBar(
-            title: const Text('Pílulas do Conhecimento', style: TextStyle(color: Colors.white)),
+            title: Text(
+                AppLocalizations.of(context)!.appTitle, // <-- CORRIGIDO
+                style: const TextStyle(color: Colors.white)
+            ),
             backgroundColor: Colors.grey[900],
             iconTheme: IconThemeData(color: renaultGold),
           )
@@ -110,15 +114,50 @@ class _HomeState extends State<Home> {
   // Lógica de filtro e ordenação, agora em um método separado
   List<TutorialVideo> _getFilteredAndSortedVideos(List<TutorialVideo> videos) {
     List<TutorialVideo> filtered = videos.where((v) {
+      if (busca.isEmpty) {
+        return true; // Se a busca estiver vazia, retorna todos os vídeos
+      }
+
       final b = busca.toLowerCase();
-      return v.titulo.toLowerCase().contains(b) ||
-          v.subtitulo.toLowerCase().contains(b) ||
-          v.tags.any((t) => t.toLowerCase().contains(b));
+
+      // Função helper para verificar se o termo de busca existe em qualquer tradução de um campo
+      bool checkMatch(Map<String, dynamic> translations) {
+        // itera sobre todos os valores do mapa de tradução (ex: "Ajuste Lombar", "Lumbar Adjustment", etc.)
+        for (var text in translations.values) {
+          if (text is String && text.toLowerCase().contains(b)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Função helper para verificar as tags
+      bool checkTagsMatch(Map<String, dynamic> tagTranslations) {
+        for (var tagList in tagTranslations.values) {
+          if (tagList is List) {
+            for (var tag in tagList) {
+              if (tag is String && tag.toLowerCase().contains(b)) {
+                return true;
+              }
+            }
+          }
+        }
+        return false;
+      }
+
+      // Aplica a verificação no título, subtítulo e tags
+      return checkMatch(v.titulo) ||
+          checkMatch(v.subtitulo) ||
+          checkTagsMatch(v.tags);
+
     }).toList();
 
+    // A lógica de ordenação não precisa mudar, pois 'titulo' ainda é acessado
+    // para comparação, mas vamos usar o título no idioma atual para ordenar.
     if (ordenacao == "Alfabética") {
-      filtered.sort((a, b) => a.titulo.compareTo(b.titulo));
+      filtered.sort((a, b) => a.getTitulo(context).compareTo(b.getTitulo(context)));
     } else {
+      // A ordenação por data já está correta e não precisa de mudança
       filtered.sort((a, b) =>
           _parseBrazilDate(b.dataAtualizacao)
               .compareTo(_parseBrazilDate(a.dataAtualizacao)));
@@ -259,10 +298,16 @@ class _HomeState extends State<Home> {
               child: TutorialCardPremium(
                 video: video,
                 renaultGold: renaultGold,
-                onPlay: () => showDialog(
-                  context: context,
-                  builder: (_) => VideoDialog(url: video.url, title: video.titulo),
-                ),
+                onPlay: () {
+                  // Pega o título e a URL no idioma correto ANTES de chamar o dialog
+                  final String videoTitle = video.getTitulo(context);
+                  final String videoUrl = video.getUrl(context);
+
+                  showDialog(
+                    context: context,
+                    builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
+                  );
+                },
               ),
             );
           }).toList(),
@@ -271,16 +316,17 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildHeader(Color renaultGold) {
+    // Use AppLocalizations para pegar os textos traduzidos
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Pílulas do Conhecimento.",
+          AppLocalizations.of(context)!.appTitle, // <-- CORRIGIDO
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40, color: renaultGold),
         ),
         const SizedBox(height: 6),
         Text(
-          "Sua dose diária de aprendizado sobre seu novo Renault!",
+          AppLocalizations.of(context)!.appSubtitle, // <-- CORRIGIDO
           style: TextStyle(fontWeight: FontWeight.w500, fontSize: 22, color: Colors.grey[800]),
         ),
       ],
@@ -295,7 +341,7 @@ class _HomeState extends State<Home> {
             controller: _searchController,
             style: const TextStyle(fontSize: 18),
             decoration: InputDecoration(
-              hintText: 'Buscar...',
+              hintText: AppLocalizations.of(context)!.searchHint,
               prefixIcon: Icon(Icons.search, color: renaultGold),
               suffixIcon: busca.isNotEmpty
                   ? IconButton(
@@ -311,12 +357,19 @@ class _HomeState extends State<Home> {
           ),
         ),
         const SizedBox(width: 10),
+        // CÓDIGO CORRIGIDO E INTERNACIONALIZADO
         PopupMenuButton<String>(
           icon: Icon(Icons.sort, color: renaultGold, size: 30),
           onSelected: (v) => setState(() => ordenacao = v),
           itemBuilder: (ctx) => [
-            const PopupMenuItem(child: Text("Por Data"), value: "Data"),
-            const PopupMenuItem(child: Text("A-Z"), value: "Alfabética"),
+            PopupMenuItem(
+              value: "Data", // O valor interno não muda
+              child: Text(AppLocalizations.of(context)!.sortByDate), // Texto traduzido
+            ),
+            PopupMenuItem(
+              value: "Alfabética", // O valor interno não muda
+              child: Text(AppLocalizations.of(context)!.sortByAlphabet), // Texto traduzido
+            ),
           ],
         ),
       ],
@@ -342,7 +395,17 @@ class _HomeState extends State<Home> {
                 child: TutorialCardPremium(
                   video: v,
                   renaultGold: renaultGold,
-                  onPlay: () => showDialog(context: context, builder: (_) => VideoDialog(url: v.url, title: v.titulo)),
+                  // CÓDIGO NOVO E CORRETO
+                  onPlay: () {
+                    // Pega o título e a URL no idioma correto ANTES de chamar o dialog
+                    final String videoTitle = v.getTitulo(context);
+                    final String videoUrl = v.getUrl(context);
+
+                    showDialog(
+                      context: context,
+                      builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
+                    );
+                  },
                 ),
               )).toList(),
             ),
@@ -358,7 +421,17 @@ class _HomeState extends State<Home> {
             child: TutorialCardPremium(
               video: video,
               renaultGold: renaultGold,
-              onPlay: () => showDialog(context: context, builder: (_) => VideoDialog(url: video.url, title: video.titulo)),
+              // CÓDIGO NOVO E CORRETO
+              onPlay: () {
+                // Pega o título e a URL no idioma correto ANTES de chamar o dialog
+                final String videoTitle = video.getTitulo(context);
+                final String videoUrl = video.getUrl(context);
+
+                showDialog(
+                  context: context,
+                  builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
+                );
+              },
             ),
           );
         },
