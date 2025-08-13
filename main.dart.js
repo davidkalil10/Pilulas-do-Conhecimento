@@ -90081,11 +90081,11 @@ this.b1()},
 zu(){var s=0,r=A.J(t.q8),q,p
 var $async$zu=A.F(function(a,b){if(a===1)return A.G(b,r)
 while(true)switch(s){case 0:s=3
-return A.P(A.aYL(A.ho("https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json")),$async$zu)
+return A.P(A.aYL(A.ho("https://api.jsonbin.io/v3/b/689c0085ae596e708fc8b523/latest")),$async$zu)
 case 3:p=b
-if(p.b===200){q=B.dG.fC(A.aYx(A.aW1(p.e)).fC(p.w)).mO(0,new A.arw(),t.N,t.OP)
+if(p.b===200){q=B.dG.fC(A.aYx(A.aW1(p.e)).fC(p.w)).h(0,"record").mO(0,new A.arw(),t.N,t.OP)
 s=1
-break}else throw A.i(A.eA("Falha ao carregar os dados"))
+break}else throw A.i(A.eA("Falha ao carregar dados do JSONBin"))
 case 1:return A.H(q,r)}})
 return A.I($async$zu,r)},
 Pv(a){var s=a.split("/")
