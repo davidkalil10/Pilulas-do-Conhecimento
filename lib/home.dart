@@ -42,15 +42,33 @@ class _HomeState extends State<Home> {
   }
 
   Future<Map<String, Categoria>> fetchCategorias() async {
+
+    const String binId = '689c0085ae596e708fc8b523';
+    const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
+
     final response = await http.get(Uri.parse(
-        'https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json')); // URL CORRIGIDA PARA SEU REPO
-    if (response.statusCode == 200) {
+       // 'https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json')); // URL CORRIGIDA PARA SEU REPO    final response = await http.get(Uri.parse(
+        url)); // URL CORRIGIDA PARA SEU REPO
+
+    /*if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
       return data.map((key, value) =>
           MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
     } else {
       throw Exception('Falha ao carregar os dados');
+    }*/
+
+    if (response.statusCode == 200) {
+      // O JSONBin retorna os dados dentro de uma chave "record"
+      final Map<String, dynamic> data = json.decode(response.body);
+      final Map<String, dynamic> record = data['record'];
+
+      return record.map((key, value) =>
+          MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
+    } else {
+      throw Exception('Falha ao carregar dados do JSONBin');
     }
+
   }
 
   DateTime _parseBrazilDate(String s) {
