@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:pilulasdoconhecimento/widgets/clipper.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/categoria.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
@@ -18,18 +16,16 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late Future<Map<String, Categoria>> _categoriasFuture;
   final TextEditingController _searchController = TextEditingController();
-  String carroSelecionado = "";
+
+  String categoriaSelecionada = "";
   String busca = "";
   String ordenacao = "Data";
-  String categoriaSelecionada = "todos"; // Nova seleção de categoria
-  late stt.SpeechToText _speech; // Para o speech-to-text
-  bool _isListening = false;
 
   @override
   void initState() {
     super.initState();
     _categoriasFuture = fetchCategorias();
-    _speech = stt.SpeechToText();
+    // Atualiza a busca conforme o usuário digita
     _searchController.addListener(() {
       if (busca != _searchController.text) {
         setState(() {
@@ -46,17 +42,33 @@ class _HomeState extends State<Home> {
   }
 
   Future<Map<String, Categoria>> fetchCategorias() async {
+
     const String binId = '689c0085ae596e708fc8b523';
     const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
-    final response = await http.get(Uri.parse(url));
+
+    final response = await http.get(Uri.parse(
+      // 'https://raw.githubusercontent.com/davidkalil10/pilulas-json/refs/heads/main/pilulas.json')); // URL CORRIGIDA PARA SEU REPO    final response = await http.get(Uri.parse(
+        url)); // URL CORRIGIDA PARA SEU REPO
+
+    /*if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      return data.map((key, value) =>
+          MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
+    } else {
+      throw Exception('Falha ao carregar os dados');
+    }*/
+
     if (response.statusCode == 200) {
+      // O JSONBin retorna os dados dentro de uma chave "record"
       final Map<String, dynamic> data = json.decode(response.body);
       final Map<String, dynamic> record = data['record'];
+
       return record.map((key, value) =>
           MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
     } else {
       throw Exception('Falha ao carregar dados do JSONBin');
     }
+
   }
 
   DateTime _parseBrazilDate(String s) {
@@ -64,23 +76,80 @@ class _HomeState extends State<Home> {
     return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
   }
 
-  // Filtro de vídeos por busca, categoria e ordenação
+  @override
+  Widget build(BuildContext context) {
+    final renaultGold = const Color(0xFFF6C700);
+    // Ponto de quebra para decidir o layout
+    final bool isMobile = MediaQuery.of(context).size.width < 850;
+
+    return FutureBuilder<Map<String, Categoria>>(
+      future: _categoriasFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Scaffold(body: Center(child: Text("Falha ao carregar dados. Erro: ${snapshot.error}")));
+        }
+
+        final categorias = snapshot.data!;
+        final categoriaNomes = categorias.keys.toList();
+        if (categoriaSelecionada.isEmpty && categoriaNomes.isNotEmpty) {
+          categoriaSelecionada = categoriaNomes.first;
+        }
+
+        final videos = categorias[categoriaSelecionada]!.videos;
+        final filtered = _getFilteredAndSortedVideos(videos);
+
+        // O widget do menu lateral, agora separado para ser reutilizado
+        final menuLateralWidget = _buildMenuLateral(categorias, categoriaNomes, renaultGold, isMobile);
+
+        return Scaffold(
+          backgroundColor: Colors.grey[100],
+          // Adiciona um Drawer (menu deslizante) no layout mobile
+          drawer: isMobile ? Drawer(child: menuLateralWidget) : null,
+          // Adiciona uma AppBar com botão para o Drawer no layout mobile
+          appBar: isMobile
+              ? AppBar(
+            title: Text(
+                AppLocalizations.of(context)!.appTitle, // <-- CORRIGIDO
+                style: const TextStyle(color: Colors.white)
+            ),
+            backgroundColor: Colors.grey[900],
+            iconTheme: IconThemeData(color: renaultGold),
+          )
+              : null,
+          body: SafeArea(
+            child: isMobile
+                ? _buildMobileLayout(filtered, renaultGold)
+                : _buildDesktopLayout(menuLateralWidget, filtered, renaultGold),
+          ),
+        );
+      },
+    );
+  }
+
+  // Lógica de filtro e ordenação, agora em um método separado
   List<TutorialVideo> _getFilteredAndSortedVideos(List<TutorialVideo> videos) {
     List<TutorialVideo> filtered = videos.where((v) {
-      final languageCode = Localizations.localeOf(context).languageCode;
-      final catTexto = v.categoria[languageCode] ?? v.categoria['pt'] ?? '';
-      // Filtrar por categoria selecionada (menu horizontal)
-      if (categoriaSelecionada != "todos" && catTexto != categoriaSelecionada) return false;
-      // Filtro de busca (em título, subtítulo, tags)
-      if (busca.isEmpty) return true;
+      if (busca.isEmpty) {
+        return true; // Se a busca estiver vazia, retorna todos os vídeos
+      }
+
       final b = busca.toLowerCase();
 
+      // Função helper para verificar se o termo de busca existe em qualquer tradução de um campo
       bool checkMatch(Map<String, dynamic> translations) {
+        // itera sobre todos os valores do mapa de tradução (ex: "Ajuste Lombar", "Lumbar Adjustment", etc.)
         for (var text in translations.values) {
-          if (text is String && text.toLowerCase().contains(b)) return true;
+          if (text is String && text.toLowerCase().contains(b)) {
+            return true;
+          }
         }
         return false;
       }
+
+      // Função helper para verificar as tags
       bool checkTagsMatch(Map<String, dynamic> tagTranslations) {
         for (var tagList in tagTranslations.values) {
           if (tagList is List) {
@@ -93,15 +162,20 @@ class _HomeState extends State<Home> {
         }
         return false;
       }
+
+      // Aplica a verificação no título, subtítulo e tags
       return checkMatch(v.titulo) ||
           checkMatch(v.subtitulo) ||
           checkTagsMatch(v.tags);
+
     }).toList();
 
-    // Ordenação
+    // A lógica de ordenação não precisa mudar, pois 'titulo' ainda é acessado
+    // para comparação, mas vamos usar o título no idioma atual para ordenar.
     if (ordenacao == "Alfabética") {
       filtered.sort((a, b) => a.getTitulo(context).compareTo(b.getTitulo(context)));
     } else {
+      // A ordenação por data já está correta e não precisa de mudança
       filtered.sort((a, b) =>
           _parseBrazilDate(b.dataAtualizacao)
               .compareTo(_parseBrazilDate(a.dataAtualizacao)));
@@ -109,110 +183,18 @@ class _HomeState extends State<Home> {
     return filtered;
   }
 
-  // Início e parada do recognition de voz
-  Future<void> _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) {
-          if (val == "done") {
-            setState(() => _isListening = false);
-          }
-        },
-        onError: (val) {
-          setState(() => _isListening = false);
-        },
-      );
-      if (available) {
-        setState(() => _isListening = true);
-        _speech.listen(
-          onResult: (val) {
-            setState(() {
-              _searchController.text = val.recognizedWords;
-              busca = val.recognizedWords;
-            });
-          },
-        );
-      }
-    } else {
-      setState(() => _isListening = false);
-      _speech.stop();
-    }
-  }
-
-// Monta lista de categorias do carro atual para o menu horizontal
-  List<String> _buildCategoriasMenu(List<TutorialVideo> videos) {
-    final languageCode = Localizations.localeOf(context).languageCode;
-
-    // Pega o nome da categoria no idioma certo para cada vídeo
-    final categorias = videos.map((v) =>
-    v.categoria[languageCode] ?? v.categoria['pt'] ?? 'Categoria'
-    ).toSet().toList();
-
-    categorias.sort(); // Ordena por nome
-    return ["todos", ...categorias];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final renaultGold = const Color(0xFFF6C700);
-    final bool isMobile = MediaQuery.of(context).size.width < 850;
-    return FutureBuilder<Map<String, Categoria>>(
-      future: _categoriasFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Scaffold(body: Center(child: Text("Falha ao carregar dados. Erro: ${snapshot.error}")));
-        }
-        final categorias = snapshot.data!;
-        final categoriaNomes = categorias.keys.toList();
-        if (carroSelecionado.isEmpty && categoriaNomes.isNotEmpty) {
-          carroSelecionado = categoriaNomes.first;
-        }
-        final videos = categorias[carroSelecionado]!.videos;
-        final categoriasDoMenu = _buildCategoriasMenu(videos);
-        if (!categoriasDoMenu.contains(categoriaSelecionada)) {
-          categoriaSelecionada = "todos";
-        }
-        final filtered = _getFilteredAndSortedVideos(videos);
-
-        // Widget do menu lateral dos carros
-        final menuLateralWidget = _buildMenuLateral(categorias, categoriaNomes, renaultGold, isMobile);
-
-        return Scaffold(
-          backgroundColor: Colors.black,
-          drawer: isMobile ? Drawer(child: menuLateralWidget) : null,
-          appBar: isMobile
-              ?
-          AppBar(
-           /* title: Text(
-                AppLocalizations.of(context)!.appTitle,
-                style: const TextStyle(color: Colors.white)
-            ),*/
-            backgroundColor: Colors.black,
-            iconTheme: IconThemeData(color: Colors.white),
-          )
-              : null,
-          body: SafeArea(
-            child: isMobile
-                ? _buildMobileLayout(filtered, renaultGold, categoriasDoMenu)
-                : _buildDesktopLayout(menuLateralWidget, filtered, renaultGold, categoriasDoMenu),
-          ),
-        );
-      },
-    );
-  }
+  // -- MÉTODOS PARA CONSTRUIR PARTES DA UI --
 
   Widget _buildMenuLateral(Map<String, Categoria> categorias, List<String> categoriaNomes, Color renaultGold, bool isMobile) {
     return Container(
       width: isMobile ? 280 : 180,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: Colors.grey[900],
         border: isMobile ? null : Border(right: BorderSide(width: 1.5, color: renaultGold)),
       ),
-      child: Column(
+      child: Column( // A Column principal do menu
         children: [
+          // O conteúdo do menu que já existe
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
@@ -221,19 +203,17 @@ class _HomeState extends State<Home> {
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: renaultGold, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: Colors.amber[600], shape: BoxShape.circle),
                     child: Image.asset('assets/logo_renault.png', height: 36),
                   ),
                 ),
-                ...categoriaNomes.map((carro) {
-                  final selected = carro == carroSelecionado;
-                  final thumbnail = categorias[carro]!.thumbnail;
+                ...categoriaNomes.map((cat) {
+                  // ... seu código para os itens de categoria vai aqui ...
+                  final selected = cat == categoriaSelecionada;
+                  final thumbnail = categorias[cat]!.thumbnail;
                   return InkWell(
                     onTap: () {
-                      setState(() {
-                        carroSelecionado = carro;
-                        categoriaSelecionada = "todos"; // volta pro 'todos'
-                      });
+                      setState(() => categoriaSelecionada = cat);
                       if (isMobile) Navigator.of(context).pop();
                     },
                     borderRadius: BorderRadius.circular(12),
@@ -254,7 +234,7 @@ class _HomeState extends State<Home> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            carro,
+                            cat,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
@@ -270,13 +250,15 @@ class _HomeState extends State<Home> {
               ],
             ),
           ),
+
+          // ----- ADIÇÃO DA MARCA D'ÁGUA/ASSINATURA -----
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
               "Desenvolvido por David Kalil Braga",
               style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 12,
+                color: Colors.white.withOpacity(0.4), // Cor discreta
+                fontSize: 12, // Tamanho pequeno
               ),
               textAlign: TextAlign.center,
             ),
@@ -286,12 +268,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildDesktopLayout(
-      Widget menuLateral,
-      List<TutorialVideo> filtered,
-      Color renaultGold,
-      List<String> categoriasDoMenu
-      ) {
+  Widget _buildDesktopLayout(Widget menuLateral, List<TutorialVideo> filtered, Color renaultGold) {
     return Row(
       children: [
         menuLateral,
@@ -302,11 +279,9 @@ class _HomeState extends State<Home> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(renaultGold),
-                const SizedBox(height: 18),
+                const SizedBox(height: 25),
                 _buildSearchBar(renaultGold),
-                const SizedBox(height: 14),
-                _buildCategoriasHorizontal(categoriasDoMenu, renaultGold),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 _buildCardsGrid(filtered, renaultGold, isDesktop: true),
               ],
             ),
@@ -316,28 +291,25 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildMobileLayout(
-      List<TutorialVideo> filtered,
-      Color renaultGold,
-      List<String> categoriasDoMenu
-      ) {
+  Widget _buildMobileLayout(List<TutorialVideo> filtered, Color renaultGold) {
+    // Usar ListView como base para garantir a rolagem e evitar overflow
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        _buildHeader(renaultGold),
-        const SizedBox(height: 12),
+        // Todos os widgets agora são filhos diretos do ListView
         _buildSearchBar(renaultGold),
-        const SizedBox(height: 12),
-        _buildCategoriasHorizontal(categoriasDoMenu, renaultGold),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+
+        // Se não houver vídeos, mostre a mensagem
         if (filtered.isEmpty)
           const Center(
             child: Padding(
               padding: EdgeInsets.only(top: 50.0),
-              child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18)),
             ),
           )
         else
+        // Se houver vídeos, construa a lista
           ...filtered.map((video) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
@@ -345,14 +317,15 @@ class _HomeState extends State<Home> {
                 video: video,
                 renaultGold: renaultGold,
                 onPlay: () {
+                  // Pega o título e a URL no idioma correto ANTES de chamar o dialog
                   final String videoTitle = video.getTitulo(context);
                   final String videoUrl = video.getUrl(context);
+
                   showDialog(
                     context: context,
                     builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
                   );
                 },
-                dark: true, // estiliza escuro (ajuste no card)
               ),
             );
           }).toList(),
@@ -361,46 +334,21 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildHeader(Color renaultGold) {
-    return
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Logo Renault antes do título
-                Image.asset(
-                  'assets/logo_renault.png', // Caminho para seu logo!
-                  height: 50, // Ajuste conforme a proporção desejada
-                  color: Colors.white,           // <-- Aplica branco!
-                  colorBlendMode: BlendMode.srcIn, // <-- Garante coloração
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Renault: " + AppLocalizations.of(context)!.appTitle,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 30,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Padding(
-              padding: EdgeInsets.only(left: 5),
-              child: Text(
-                AppLocalizations.of(context)!.appSubtitle,
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: Colors.white70,
-                ),
-              ),
-            ),
-          ],
-        );
-
+    // Use AppLocalizations para pegar os textos traduzidos
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.appTitle, // <-- CORRIGIDO
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40, color: renaultGold),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          AppLocalizations.of(context)!.appSubtitle, // <-- CORRIGIDO
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 22, color: Colors.grey[800]),
+        ),
+      ],
+    );
   }
 
   Widget _buildSearchBar(Color renaultGold) {
@@ -409,46 +357,35 @@ class _HomeState extends State<Home> {
         Expanded(
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(fontSize: 18, color: Colors.white),
+            style: const TextStyle(fontSize: 18),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)!.searchHint,
-              hintStyle: const TextStyle(color: Colors.white54),
-              prefixIcon: Icon(Icons.search, color: Colors.white),
-              suffixIcon: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: _isListening ? renaultGold : Colors.white54,
-                    ),
-                    onPressed: _listen,
-                  ),
-                  if (busca.isNotEmpty)
-                    IconButton(
-                      icon: Icon(Icons.clear, color: Colors.white54),
-                      onPressed: () => _searchController.clear(),
-                    ),
-                ],
-              ),
+              prefixIcon: Icon(Icons.search, color: renaultGold),
+              suffixIcon: busca.isNotEmpty
+                  ? IconButton(
+                icon: Icon(Icons.clear, color: Colors.grey[600]),
+                onPressed: () => _searchController.clear(),
+              )
+                  : null,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
               filled: true,
-              fillColor: Colors.grey[900],
+              fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(vertical: 4),
             ),
           ),
         ),
         const SizedBox(width: 10),
+        // CÓDIGO CORRIGIDO E INTERNACIONALIZADO
         PopupMenuButton<String>(
-          icon: Icon(Icons.sort, color: Colors.white, size: 30),
+          icon: Icon(Icons.sort, color: renaultGold, size: 30),
           onSelected: (v) => setState(() => ordenacao = v),
           itemBuilder: (ctx) => [
             PopupMenuItem(
-              value: "Data",
+              value: "Data", // O valor interno não muda
               child: Text(AppLocalizations.of(context)!.sortByDate), // Texto traduzido
             ),
             PopupMenuItem(
-              value: "Alfabética",
+              value: "Alfabética", // O valor interno não muda
               child: Text(AppLocalizations.of(context)!.sortByAlphabet), // Texto traduzido
             ),
           ],
@@ -457,45 +394,11 @@ class _HomeState extends State<Home> {
     );
   }
 
-  // Menu horizontal de categorias dos vídeos
-  Widget _buildCategoriasHorizontal(List<String> categoriasDoMenu, Color renaultGold) {
-    const double tabHeight = 38; // Altura consistente
-    const double horizontalPad = 28;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          for (int i = 0; i < categoriasDoMenu.length; i++) ...[
-            CategoryTab(
-              label: categoriasDoMenu[i],
-              selected: categoriasDoMenu[i] == categoriaSelecionada,
-              isFirst: i == 0,
-              isLast: i == categoriasDoMenu.length - 1,
-              height: tabHeight,
-              horizontalPadding: horizontalPad,
-              onTap: () => setState(() => categoriaSelecionada = categoriasDoMenu[i]),
-            ),
-            if (i < categoriasDoMenu.length - 1)
-              Text(
-                '/',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.35),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  height: 1.0,
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildCardsGrid(List<TutorialVideo> filtered, Color renaultGold, {required bool isDesktop}) {
     if (filtered.isEmpty) {
-      return const Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white)));
+      return const Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18)));
     }
+
     return Expanded(
       child: isDesktop
           ? LayoutBuilder(
@@ -510,15 +413,17 @@ class _HomeState extends State<Home> {
                 child: TutorialCardPremium(
                   video: v,
                   renaultGold: renaultGold,
+                  // CÓDIGO NOVO E CORRETO
                   onPlay: () {
+                    // Pega o título e a URL no idioma correto ANTES de chamar o dialog
                     final String videoTitle = v.getTitulo(context);
                     final String videoUrl = v.getUrl(context);
+
                     showDialog(
                       context: context,
                       builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
                     );
                   },
-                  dark: true, // estiliza escuro (ajuste no card)
                 ),
               )).toList(),
             ),
@@ -534,15 +439,17 @@ class _HomeState extends State<Home> {
             child: TutorialCardPremium(
               video: video,
               renaultGold: renaultGold,
+              // CÓDIGO NOVO E CORRETO
               onPlay: () {
+                // Pega o título e a URL no idioma correto ANTES de chamar o dialog
                 final String videoTitle = video.getTitulo(context);
                 final String videoUrl = video.getUrl(context);
+
                 showDialog(
                   context: context,
                   builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
                 );
               },
-              dark: true,
             ),
           );
         },

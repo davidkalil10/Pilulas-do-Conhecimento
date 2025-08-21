@@ -1,40 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
-class TutorialCardPremium extends StatefulWidget {
+
+class TutorialCardPremium extends StatelessWidget {
   final TutorialVideo video;
   final Color renaultGold;
   final VoidCallback onPlay;
-
+  final bool dark;
   const TutorialCardPremium({
     required this.video,
     required this.renaultGold,
     required this.onPlay,
+    this.dark = false,
     Key? key,
   }) : super(key: key);
 
-  @override
-  State<TutorialCardPremium> createState() => _TutorialCardPremiumState();
-}
-
-class _TutorialCardPremiumState extends State<TutorialCardPremium> {
-  bool expanded = false;
+  // Helper para pegar categoria no idioma
+  String getCategoria(BuildContext context) {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    return video.categoria[languageCode] ?? video.categoria['pt'] ?? 'Categoria';
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 1200;
+    final bgCard = dark ? Colors.grey[900] : Colors.white;
+    final titleColor = dark ? Colors.white : Colors.black;
+    final textColor = dark ? Colors.white70 : Colors.grey[900];
 
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(18),
+      color: bgCard,
       child: Container(
         width: double.infinity,
-        height: isDesktop ? null : (expanded ? 300 : 230),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: Colors.grey[900],
+          color: bgCard,
           border: Border.all(
-            color: widget.renaultGold.withOpacity(0.7),
+            color: bgCard!.withOpacity(dark ? 0.6 : 0.4),
             width: 2,
           ),
         ),
@@ -46,27 +50,27 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-                  child: widget.video.thumbnail.isNotEmpty
+                  child: video.thumbnail.isNotEmpty
                       ? Image.network(
-                    widget.video.thumbnail,
+                    video.thumbnail,
                     width: double.infinity,
-                    height: 110,
+                    height: 120,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      height: 110,
+                      height: 120,
                       color: Colors.grey[800],
                     ),
                   )
                       : Container(
                     width: double.infinity,
-                    height: 110,
+                    height: 120,
                     color: Colors.grey[800],
                   ),
                 ),
                 Positioned.fill(
                   child: Center(
                     child: InkWell(
-                      onTap: widget.onPlay,
+                      onTap: onPlay,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.black54,
@@ -76,7 +80,7 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                         child: Icon(
                           Icons.play_arrow,
                           size: 42,
-                          color: widget.renaultGold,
+                          color: renaultGold,
                         ),
                       ),
                     ),
@@ -91,127 +95,53 @@ class _TutorialCardPremiumState extends State<TutorialCardPremium> {
                 mainAxisSize: isDesktop ? MainAxisSize.min : MainAxisSize.max,
                 children: [
                   Text(
-                    widget.video.getTitulo(context),
+                    video.getTitulo(context),
                     style: TextStyle(
-                      color: widget.renaultGold,
+                      color: titleColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4),
-                  isDesktop
-                  // MODO DESKTOP: subtítulo e tags completos
-                      ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.video.getSubtitulo(context),
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 5,
-                        runSpacing: 3,
-                        children: widget.video.getTags(context)
-                            .map((t) => Container(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          margin: const EdgeInsets.only(bottom: 3),
-                          decoration: BoxDecoration(
-                            color: widget.renaultGold.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            t, // 't' aqui já é a tag traduzida (ex: "seat", "asiento", "siège")
-                            style: const TextStyle(fontSize: 10, color: Colors.black),
-                          ),
-                        ))
-                            .toList(),
-                      ),
-                      SizedBox(height: 7),
-                    ],
-                  )
-                  // MOBILE/TABLET: modo compact/expand
-                      : !expanded
-                      ? Text(
-                    widget.video.getSubtitulo(context), // Pega o subtítulo no idioma do dispositivo
+                  SizedBox(height: 6),
+                  Text(
+                    video.getSubtitulo(context),
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: textColor,
                       fontSize: 13,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  )
-                      : SizedBox(
-                    height: 65,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.video.getSubtitulo(context), // Pega o subtítulo no idioma do dispositivo
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          Wrap(
-                            spacing: 5,
-                            runSpacing: 3,
-                            children: widget.video.getTags(context)
-                                .map((t) => Container(
-                              padding:
-                              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              margin: const EdgeInsets.only(bottom: 3),
-                              decoration: BoxDecoration(
-                                color: widget.renaultGold.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                t, // 't' aqui já é a tag traduzida (ex: "seat", "asiento", "siège")
-                                style: const TextStyle(fontSize: 10, color: Colors.black),
-                              ),
-                            ))
-                                .toList(),
-                          ),
-                          SizedBox(height: 7),
-                        ],
+                  ),
+                  SizedBox(height: 8),
+                  // categoria como label multilíngue
+                  Container(
+                    decoration: BoxDecoration(
+                      color: dark ? Colors.black: renaultGold.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                    child: Text(
+                      getCategoria(context),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: dark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${AppLocalizations.of(context)!.updatedOn}: ${widget.video.dataAtualizacao}", // <-- CORRIGIDO",
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: widget.renaultGold.withOpacity(0.8),
-                        ),
-                      ),
-                      if (!isDesktop)
-                        IconButton(
-                          icon: Icon(
-                            expanded ? Icons.expand_less : Icons.expand_more,
-                            color: widget.renaultGold,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              expanded = !expanded;
-                            });
-                          },
-                          tooltip: expanded
-                              ? 'Fechar'
-                              : 'Expandir para ver detalhes',
-                        ),
-                    ],
+                  SizedBox(height: 8),
+                  Text(
+                    "${AppLocalizations.of(context)!.updatedOn}: ${video.dataAtualizacao}",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: dark
+                          ? Colors.white70
+                          : Colors.grey[600],
+                    ),
                   ),
                 ],
               ),

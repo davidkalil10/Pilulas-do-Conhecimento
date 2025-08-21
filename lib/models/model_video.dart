@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 class TutorialVideo {
-  // Agora os campos de texto são Mapas
   final Map<String, dynamic> titulo;
   final Map<String, dynamic> subtitulo;
   final Map<String, dynamic> tags;
   final Map<String, dynamic> url;
+  final Map<String, dynamic> categoria;
 
   final String thumbnail;
   final String dataAtualizacao;
+  final String id;        // Novo ID único do vídeo (UUID v4)
 
   TutorialVideo({
     required this.titulo,
@@ -17,6 +18,8 @@ class TutorialVideo {
     required this.url,
     required this.thumbnail,
     required this.dataAtualizacao,
+    required this.categoria,
+    required this.id,
   });
 
   factory TutorialVideo.fromJson(Map<String, dynamic> json) {
@@ -27,26 +30,25 @@ class TutorialVideo {
       url: json['URL'] as Map<String, dynamic>,
       thumbnail: json['thumbnail'] ?? "",
       dataAtualizacao: json['data_atualizacao'] ?? "",
+      categoria: json['categoria'] as Map<String, dynamic>,
+      id: json['id'] ?? "", // vem do JSON, string (UUID v4)
     );
   }
 
-  // Método helper para pegar o texto no idioma correto
+  // Métodos para pegar os textos corretos no idioma
   String getTitulo(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
-    return titulo[languageCode] ?? titulo['pt'] ?? 'Título indisponível'; // Fallback para português
+    return titulo[languageCode] ?? titulo['pt'] ?? 'Título indisponível';
   }
-
   String getSubtitulo(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     return subtitulo[languageCode] ?? subtitulo['pt'] ?? '';
   }
-
   List<String> getTags(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     final tagList = tags[languageCode] ?? tags['pt'] ?? [];
     return List<String>.from(tagList);
   }
-
   String getUrl(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     return url[languageCode] ?? url['pt'] ?? '';
