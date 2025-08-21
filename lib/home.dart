@@ -68,6 +68,16 @@ class _HomeState extends State<Home> {
   List<TutorialVideo> _getFilteredAndSortedVideos(List<TutorialVideo> videos) {
     List<TutorialVideo> filtered = videos.where((v) {
       final languageCode = Localizations.localeOf(context).languageCode;
+
+      // Bloqueia conteúdos vazios para o idioma atual
+      final titulo = v.titulo[languageCode]?.trim() ?? '';
+      final subtitulo = v.subtitulo[languageCode]?.trim() ?? '';
+      final url = v.url[languageCode]?.trim() ?? '';
+      final categoria = v.categoria[languageCode]?.trim() ?? '';
+
+      bool vazio = titulo.isEmpty || subtitulo.isEmpty || url.isEmpty || categoria.isEmpty;
+      if (vazio) return false;
+
       final catTexto = v.categoria[languageCode] ?? v.categoria['pt'] ?? '';
       // Filtrar por categoria selecionada (menu horizontal)
       if (categoriaSelecionada != "todos" && catTexto != categoriaSelecionada) return false;
@@ -144,9 +154,11 @@ class _HomeState extends State<Home> {
     final languageCode = Localizations.localeOf(context).languageCode;
 
     // Pega o nome da categoria no idioma certo para cada vídeo
-    final categorias = videos.map((v) =>
-    v.categoria[languageCode] ?? v.categoria['pt'] ?? 'Categoria'
-    ).toSet().toList();
+    final categorias = videos
+        .map((v) => (v.categoria[languageCode] ?? v.categoria['pt'] ?? '').trim())
+        .where((cat) => cat.isNotEmpty) // <- Filtra categorias não vazias
+        .toSet()
+        .toList();
 
     categorias.sort(); // Ordena por nome
     return ["todos", ...categorias];
@@ -186,10 +198,10 @@ class _HomeState extends State<Home> {
           appBar: isMobile
               ?
           AppBar(
-           /* title: Text(
-                AppLocalizations.of(context)!.appTitle,
+            title: Text(
+                "Renault: "+AppLocalizations.of(context)!.appTitle,
                 style: const TextStyle(color: Colors.white)
-            ),*/
+            ),
             backgroundColor: Colors.black,
             iconTheme: IconThemeData(color: Colors.white),
           )
