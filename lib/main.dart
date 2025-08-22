@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:pilulasdoconhecimento/home.dart';
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart'; // Import relativo ao seu projeto
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb) {
+    final appDocDir = await path_provider.getApplicationDocumentsDirectory();
+    Hive.init(appDocDir.path);
+  }
   runApp(const MyApp());
 }
 class MyApp extends StatelessWidget {

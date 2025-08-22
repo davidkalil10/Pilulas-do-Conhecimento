@@ -7,15 +7,24 @@ class TutorialCardPremium extends StatelessWidget {
   final Color renaultGold;
   final VoidCallback onPlay;
   final bool dark;
+
+  final bool isFavorite;
+  final VoidCallback onFavorite;
+  final bool isDownloading;
+  final double downloadProgress;
+
   const TutorialCardPremium({
     required this.video,
     required this.renaultGold,
     required this.onPlay,
     this.dark = false,
+    this.isFavorite = false,
+    required this.onFavorite,
+    this.isDownloading = false,
+    this.downloadProgress = 0.0,
     Key? key,
   }) : super(key: key);
 
-  // Helper para pegar categoria no idioma
   String getCategoria(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     return video.categoria[languageCode] ?? video.categoria['pt'] ?? 'Categoria';
@@ -86,8 +95,35 @@ class TutorialCardPremium extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Ícone do favorito no topo direito
+                Positioned(
+                  top: 10,
+                  right: 15,
+                  child: GestureDetector(
+                    onTap: onFavorite,
+                    child: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.white : Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
               ],
             ),
+            // Barra de progresso download, se estiver baixando...
+            if (isDownloading)
+              Padding(
+                padding: const EdgeInsets.only(left: 14, right: 14, bottom: 4, top: 6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: downloadProgress,
+                    backgroundColor: Colors.grey[700],
+                    color: renaultGold,
+                    minHeight: 6,
+                  ),
+                ),
+              ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Column(
@@ -115,10 +151,9 @@ class TutorialCardPremium extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 8),
-                  // categoria como label multilíngue
                   Container(
                     decoration: BoxDecoration(
-                      color: dark ? Colors.black: renaultGold.withOpacity(0.15),
+                      color: dark ? Colors.black : renaultGold.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),

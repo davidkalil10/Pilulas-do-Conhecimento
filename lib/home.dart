@@ -1,8 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:pilulasdoconhecimento/widgets/clipper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'package:pilulasdoconhecimento/widgets/category_tab.dart'; // <-- seu widget customizado
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/categoria.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
@@ -14,16 +22,21 @@ class Home extends StatefulWidget {
   @override
   State<Home> createState() => _HomeState();
 }
-
 class _HomeState extends State<Home> {
   late Future<Map<String, Categoria>> _categoriasFuture;
   final TextEditingController _searchController = TextEditingController();
   String carroSelecionado = "";
   String busca = "";
   String ordenacao = "Data";
-  String categoriaSelecionada = "todos"; // Nova seleção de categoria
-  late stt.SpeechToText _speech; // Para o speech-to-text
+  String categoriaSelecionada = "todos";
+  late stt.SpeechToText _speech;
   bool _isListening = false;
+
+  // Favoritos
+  Box? _favBox;
+  Set<String> favoritos = {};
+  String _downloadingId = ""; // id do vídeo que está sendo baixado
+  double _downloadProgress = 0.0; // progresso do download
 
   @override
   void initState() {
@@ -37,6 +50,41 @@ class _HomeState extends State<Home> {
         });
       }
     });
+    _initHive();
+  }
+
+  Future<void> _initHive() async {
+    _favBox = await Hive.openBox('favorites');
+    setState(() {
+      favoritos = Set<String>.from(_favBox!.keys);
+    });
+  }
+
+  void _playVideo(TutorialVideo video) async {
+    final videoTitle = video.getTitulo(context);
+    final videoUrl = video.getUrl(context);
+
+    bool isFileVideo = false;
+    String localPath = "";
+
+    // Somente para Android/iOS (não web)
+    if (!kIsWeb) {
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath = '${dir.path}/${video.id}.mp4';
+      if (File(filePath).existsSync()) {
+        isFileVideo = true;
+        localPath = filePath;
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => VideoDialog(
+        url: isFileVideo ? localPath : videoUrl,
+        title: videoTitle,
+        isFile: isFileVideo,
+      ),
+    );
   }
 
   @override
@@ -48,15 +96,33 @@ class _HomeState extends State<Home> {
   Future<Map<String, Categoria>> fetchCategorias() async {
     const String binId = '689c0085ae596e708fc8b523';
     const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final Map<String, dynamic> record = data['record'];
-      return record.map((key, value) =>
-          MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
-    } else {
-      throw Exception('Falha ao carregar dados do JSONBin');
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> record = data['record'];
+
+        // Salva backup local do JSON em SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('categorias_json', json.encode(record));
+
+        return record.map((key, value) =>
+            MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
+      }
+    } catch (e) {
+      debugPrint("Falha no fetch remoto: $e");
+
+      // Recupera do SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final recordString = prefs.getString('categorias_json');
+      if (recordString != null) {
+        final Map<String, dynamic> recordMap = json.decode(recordString);
+        return recordMap.map((key, value) =>
+            MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
+      }
     }
+    throw Exception('Não foi possível carregar conteúdos: sem internet e sem cache local.');
   }
 
   DateTime _parseBrazilDate(String s) {
@@ -66,25 +132,30 @@ class _HomeState extends State<Home> {
 
   // Filtro de vídeos por busca, categoria e ordenação
   List<TutorialVideo> _getFilteredAndSortedVideos(List<TutorialVideo> videos) {
+    final languageCode = Localizations.localeOf(context).languageCode;
     List<TutorialVideo> filtered = videos.where((v) {
-      final languageCode = Localizations.localeOf(context).languageCode;
+      // 1. Se a barra de categoria estiver em "favoritos", só mostra os favoritos
+      if (categoriaSelecionada == "favoritos" && !favoritos.contains(v.id)) return false;
 
-      // Bloqueia conteúdos vazios para o idioma atual
+      // 2. Bloqueia conteúdos vazios para o idioma atual
       final titulo = v.titulo[languageCode]?.trim() ?? '';
       final subtitulo = v.subtitulo[languageCode]?.trim() ?? '';
       final url = v.url[languageCode]?.trim() ?? '';
       final categoria = v.categoria[languageCode]?.trim() ?? '';
-
       bool vazio = titulo.isEmpty || subtitulo.isEmpty || url.isEmpty || categoria.isEmpty;
       if (vazio) return false;
 
+      // 3. Filtro por categoria, exceto "todos" e "favoritos"
       final catTexto = v.categoria[languageCode] ?? v.categoria['pt'] ?? '';
-      // Filtrar por categoria selecionada (menu horizontal)
-      if (categoriaSelecionada != "todos" && catTexto != categoriaSelecionada) return false;
-      // Filtro de busca (em título, subtítulo, tags)
+      if (
+      categoriaSelecionada != "todos" &&
+          categoriaSelecionada != "favoritos" &&
+          catTexto != categoriaSelecionada
+      ) return false;
+
+      // 4. Filtro de busca
       if (busca.isEmpty) return true;
       final b = busca.toLowerCase();
-
       bool checkMatch(Map<String, dynamic> translations) {
         for (var text in translations.values) {
           if (text is String && text.toLowerCase().contains(b)) return true;
@@ -119,7 +190,6 @@ class _HomeState extends State<Home> {
     return filtered;
   }
 
-  // Início e parada do recognition de voz
   Future<void> _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
@@ -149,25 +219,105 @@ class _HomeState extends State<Home> {
     }
   }
 
-// Monta lista de categorias do carro atual para o menu horizontal
   List<String> _buildCategoriasMenu(List<TutorialVideo> videos) {
     final languageCode = Localizations.localeOf(context).languageCode;
-
-    // Pega o nome da categoria no idioma certo para cada vídeo
     final categorias = videos
         .map((v) => (v.categoria[languageCode] ?? v.categoria['pt'] ?? '').trim())
-        .where((cat) => cat.isNotEmpty) // <- Filtra categorias não vazias
+        .where((cat) => cat.isNotEmpty)
         .toSet()
         .toList();
+    categorias.sort();
+    return ["todos", "favoritos", ...categorias];
+  }
 
-    categorias.sort(); // Ordena por nome
-    return ["todos", ...categorias];
+  // Favoritar/desfavoritar + baixar vídeo se não for web
+  Future<void> toggleFavorite(TutorialVideo video) async {
+    print("Toggle favorito: ${video.id}");
+    if (_favBox == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Favoritos não disponíveis, espere carregar..."))
+      );
+      return;
+    }
+    final isFavorite = favoritos.contains(video.id);
+    if (isFavorite) {
+      // Remove favorito e arquivo local
+      await _favBox!.delete(video.id);
+      if (!kIsWeb) {
+        final dir = await getApplicationDocumentsDirectory();
+        final f = File('${dir.path}/${video.id}.mp4');
+        if (await f.exists()) await f.delete();
+      }
+      setState(() => favoritos.remove(video.id));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              kIsWeb
+                  ? "Favorito removido!"
+                  : "Favorito removido e arquivo de vídeo excluído."
+          ),
+        ),
+      );
+    } else {
+      // Adiciona favorito e inicia download
+      await _favBox!.put(video.id, true);
+      setState(() => favoritos.add(video.id));
+      if (!kIsWeb) {
+        setState(() {
+          _downloadingId = video.id;
+          _downloadProgress = 0.0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Baixando vídeo para acesso offline...")),
+        );
+        final dir = await getApplicationDocumentsDirectory();
+        final filePath = '${dir.path}/${video.id}.mp4';
+        try {
+          await Dio().download(
+            video.getUrl(context),
+            filePath,
+            onReceiveProgress: (received, total) {
+              setState(() {
+                _downloadProgress = (total > 0) ? received / total : 0;
+              });
+            },
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Erro ao baixar o vídeo")),
+          );
+          await _favBox!.delete(video.id); // remove favorito se erro
+          setState(() => favoritos.remove(video.id));
+        }
+        setState(() {
+          _downloadingId = "";
+          _downloadProgress = 0.0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Vídeo baixado! Favorito salvo offline.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Favorito salvo!!")),
+        );
+      }
+    }
+  }
+
+  // Checar se vídeo está baixado no Android/iOS
+  Future<bool> isVideoDownloaded(TutorialVideo video) async {
+    if (kIsWeb) return false;
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = '${dir.path}/${video.id}.mp4';
+    return File(filePath).existsSync();
   }
 
   @override
   Widget build(BuildContext context) {
     final renaultGold = const Color(0xFFF6C700);
     final bool isMobile = MediaQuery.of(context).size.width < 850;
+
     return FutureBuilder<Map<String, Categoria>>(
       future: _categoriasFuture,
       builder: (context, snapshot) {
@@ -189,15 +339,13 @@ class _HomeState extends State<Home> {
         }
         final filtered = _getFilteredAndSortedVideos(videos);
 
-        // Widget do menu lateral dos carros
         final menuLateralWidget = _buildMenuLateral(categorias, categoriaNomes, renaultGold, isMobile);
 
         return Scaffold(
           backgroundColor: Colors.black,
           drawer: isMobile ? Drawer(child: menuLateralWidget) : null,
           appBar: isMobile
-              ?
-          AppBar(
+              ? AppBar(
             title: Text(
                 "Renault: "+AppLocalizations.of(context)!.appTitle,
                 style: const TextStyle(color: Colors.white)
@@ -234,7 +382,7 @@ class _HomeState extends State<Home> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(color: renaultGold, shape: BoxShape.circle),
-                    child: Image.asset('assets/logo_renault.png', height: 36),
+                    child: Image.asset('assets/logo_renault.png', height: 36, color: Colors.white, colorBlendMode: BlendMode.srcIn),
                   ),
                 ),
                 ...categoriaNomes.map((carro) {
@@ -244,7 +392,7 @@ class _HomeState extends State<Home> {
                     onTap: () {
                       setState(() {
                         carroSelecionado = carro;
-                        categoriaSelecionada = "todos"; // volta pro 'todos'
+                        categoriaSelecionada = "todos";
                       });
                       if (isMobile) Navigator.of(context).pop();
                     },
@@ -356,15 +504,12 @@ class _HomeState extends State<Home> {
               child: TutorialCardPremium(
                 video: video,
                 renaultGold: renaultGold,
-                onPlay: () {
-                  final String videoTitle = video.getTitulo(context);
-                  final String videoUrl = video.getUrl(context);
-                  showDialog(
-                    context: context,
-                    builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
-                  );
-                },
-                dark: true, // estiliza escuro (ajuste no card)
+                onPlay: () => _playVideo(video),
+                dark: true,
+                isFavorite: favoritos.contains(video.id),
+                onFavorite: () => toggleFavorite(video),
+                isDownloading: _downloadingId == video.id,
+                downloadProgress: _downloadProgress,
               ),
             );
           }).toList(),
@@ -373,46 +518,45 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildHeader(Color renaultGold) {
-    return
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Logo Renault antes do título
-                Image.asset(
-                  'assets/logo_renault.png', // Caminho para seu logo!
-                  height: 50, // Ajuste conforme a proporção desejada
-                  color: Colors.white,           // <-- Aplica branco!
-                  colorBlendMode: BlendMode.srcIn, // <-- Garante coloração
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "Renault: " + AppLocalizations.of(context)!.appTitle,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 30,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+            Image.asset(
+              'assets/logo_renault.png',
+              height: 50,
+              color: Colors.white,
+              colorBlendMode: BlendMode.srcIn,
             ),
-            const SizedBox(height: 2),
-            Padding(
-              padding: EdgeInsets.only(left: 5),
-              child: Text(
-                AppLocalizations.of(context)!.appSubtitle,
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 18,
-                  color: Colors.white70,
-                ),
+            const SizedBox(width: 12),
+            Text(
+              "Renault: " + AppLocalizations.of(context)!.appTitle,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+                color: Colors.white,
+                fontFamily: 'RenaultSans',
               ),
             ),
           ],
-        );
-
+        ),
+        const SizedBox(height: 2),
+        Padding(
+          padding: EdgeInsets.only(left: 5),
+          child: Text(
+            AppLocalizations.of(context)!.appSubtitle,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 18,
+              color: Colors.white70,
+              fontFamily: 'RenaultSans',
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildSearchBar(Color renaultGold) {
@@ -424,7 +568,7 @@ class _HomeState extends State<Home> {
             style: const TextStyle(fontSize: 18, color: Colors.white),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)!.searchHint,
-              hintStyle: const TextStyle(color: Colors.white54),
+              hintStyle: const TextStyle(color: Colors.white54, fontFamily: 'RenaultSans'),
               prefixIcon: Icon(Icons.search, color: Colors.white),
               suffixIcon: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -457,11 +601,11 @@ class _HomeState extends State<Home> {
           itemBuilder: (ctx) => [
             PopupMenuItem(
               value: "Data",
-              child: Text(AppLocalizations.of(context)!.sortByDate), // Texto traduzido
+              child: Text(AppLocalizations.of(context)!.sortByDate),
             ),
             PopupMenuItem(
               value: "Alfabética",
-              child: Text(AppLocalizations.of(context)!.sortByAlphabet), // Texto traduzido
+              child: Text(AppLocalizations.of(context)!.sortByAlphabet),
             ),
           ],
         ),
@@ -469,9 +613,8 @@ class _HomeState extends State<Home> {
     );
   }
 
-  // Menu horizontal de categorias dos vídeos
   Widget _buildCategoriasHorizontal(List<String> categoriasDoMenu, Color renaultGold) {
-    const double tabHeight = 38; // Altura consistente
+    const double tabHeight = 38;
     const double horizontalPad = 28;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -479,6 +622,18 @@ class _HomeState extends State<Home> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           for (int i = 0; i < categoriasDoMenu.length; i++) ...[
+            if (categoriasDoMenu[i] == 'favoritos')
+              CategoryTabIcon(
+                icon: Icons.favorite,
+                selected: categoriaSelecionada == 'favoritos',
+                isFirst: false,
+                isLast: false,
+                height: tabHeight,
+                horizontalPadding: horizontalPad - 6,
+                onTap: () => setState(() => categoriaSelecionada = 'favoritos'),
+                color: categoriaSelecionada == 'favoritos' ? Colors.white : Colors.white,
+              )
+            else
             CategoryTab(
               label: categoriasDoMenu[i],
               selected: categoriasDoMenu[i] == categoriaSelecionada,
@@ -522,15 +677,12 @@ class _HomeState extends State<Home> {
                 child: TutorialCardPremium(
                   video: v,
                   renaultGold: renaultGold,
-                  onPlay: () {
-                    final String videoTitle = v.getTitulo(context);
-                    final String videoUrl = v.getUrl(context);
-                    showDialog(
-                      context: context,
-                      builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
-                    );
-                  },
-                  dark: true, // estiliza escuro (ajuste no card)
+                  onPlay: () => _playVideo(v),
+                  dark: true,
+                  isFavorite: favoritos.contains(v.id),
+                  onFavorite: () => toggleFavorite(v),
+                  isDownloading: _downloadingId == v.id,
+                  downloadProgress: _downloadProgress,
                 ),
               )).toList(),
             ),
@@ -546,15 +698,12 @@ class _HomeState extends State<Home> {
             child: TutorialCardPremium(
               video: video,
               renaultGold: renaultGold,
-              onPlay: () {
-                final String videoTitle = video.getTitulo(context);
-                final String videoUrl = video.getUrl(context);
-                showDialog(
-                  context: context,
-                  builder: (_) => VideoDialog(url: videoUrl, title: videoTitle),
-                );
-              },
+              onPlay: () => _playVideo(video),
               dark: true,
+              isFavorite: favoritos.contains(video.id),
+              onFavorite: () => toggleFavorite(video),
+              isDownloading: _downloadingId == video.id,
+              downloadProgress: _downloadProgress,
             ),
           );
         },
