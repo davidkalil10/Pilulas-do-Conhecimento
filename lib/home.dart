@@ -1,8 +1,9 @@
 import 'dart:io';
-
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pilulasdoconhecimento/widgets/device_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:hive/hive.dart';
@@ -31,6 +32,7 @@ class _HomeState extends State<Home> {
   String categoriaSelecionada = "todos";
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Favoritos
   Box? _favBox;
@@ -342,13 +344,27 @@ class _HomeState extends State<Home> {
         final menuLateralWidget = _buildMenuLateral(categorias, categoriaNomes, renaultGold, isMobile);
 
         return Scaffold(
+          key: _scaffoldKey,
           backgroundColor: Colors.black,
           drawer: isMobile ? Drawer(child: menuLateralWidget) : null,
           appBar: isMobile
               ? AppBar(
-            title: Text(
+            title: Text( //aqui
                 "Renault: "+AppLocalizations.of(context)!.appTitle,
                 style: const TextStyle(color: Colors.white)
+            ),
+            leading: IconButton(
+              icon: Image.asset(
+                'assets/logo_renault.png',
+                height: 70,
+                color: Colors.white,
+                colorBlendMode: BlendMode.srcIn,
+              ),
+              onPressed: () {
+                // 3. Use a chave para abrir o Drawer.
+                _scaffoldKey.currentState?.openDrawer();
+              },
+              tooltip: 'Abrir menu de navegação', // Boa prática para acessibilidade
             ),
             backgroundColor: Colors.black,
             iconTheme: IconThemeData(color: Colors.white),
@@ -432,13 +448,16 @@ class _HomeState extends State<Home> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "Desenvolvido por David Kalil Braga",
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 12,
+            child: GestureDetector(
+              child: Text(
+                "Desenvolvido por David Kalil Braga",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
+              onTap: () => showDeviceInfoDialog(context),
             ),
           ),
         ],
@@ -452,6 +471,7 @@ class _HomeState extends State<Home> {
       Color renaultGold,
       List<String> categoriasDoMenu
       ) {
+    bool isMobile =false;
     return Row(
       children: [
         menuLateral,
@@ -461,7 +481,7 @@ class _HomeState extends State<Home> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(renaultGold),
+                _buildHeader(renaultGold,isMobile),
                 const SizedBox(height: 18),
                 _buildSearchBar(renaultGold),
                 const SizedBox(height: 14),
@@ -481,10 +501,11 @@ class _HomeState extends State<Home> {
       Color renaultGold,
       List<String> categoriasDoMenu
       ) {
+    bool isMobile = true;
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        _buildHeader(renaultGold),
+        _buildHeader(renaultGold,isMobile),
         const SizedBox(height: 12),
         _buildSearchBar(renaultGold),
         const SizedBox(height: 12),
@@ -517,10 +538,12 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildHeader(Color renaultGold) {
+  Widget _buildHeader(Color renaultGold, bool isMobile) {
+    print("o layout é:"+isMobile.toString());
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        !isMobile ?
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -537,12 +560,12 @@ class _HomeState extends State<Home> {
                 fontWeight: FontWeight.bold,
                 fontSize: 30,
                 color: Colors.white,
-                fontFamily: 'RenaultSans',
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 2),
+        ) :Container(),
+        !isMobile?
+        const SizedBox(height: 2):Container(),
         Padding(
           padding: EdgeInsets.only(left: 5),
           child: Text(
@@ -551,7 +574,6 @@ class _HomeState extends State<Home> {
               fontWeight: FontWeight.w500,
               fontSize: 18,
               color: Colors.white70,
-              fontFamily: 'RenaultSans',
             ),
           ),
         ),
@@ -568,7 +590,7 @@ class _HomeState extends State<Home> {
             style: const TextStyle(fontSize: 18, color: Colors.white),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)!.searchHint,
-              hintStyle: const TextStyle(color: Colors.white54, fontFamily: 'RenaultSans'),
+              hintStyle: const TextStyle(color: Colors.white54),
               prefixIcon: Icon(Icons.search, color: Colors.white),
               suffixIcon: Row(
                 mainAxisSize: MainAxisSize.min,

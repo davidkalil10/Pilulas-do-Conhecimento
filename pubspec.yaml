@@ -44,6 +44,7 @@ dependencies:
   dio: ^5.9.0
   path_provider: ^2.1.5
   shared_preferences: ^2.5.3
+  device_info_plus: ^11.5.0
 
 dev_dependencies:
   flutter_test:
