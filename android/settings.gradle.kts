@@ -23,3 +23,12 @@ plugins {
 }
 
 include(":app")
+
+/*
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google() // <--- CERTIFIQUE-SE DE QUE ESTA LINHA ESTEJA AQUI
+        mavenCentral()
+    }
+}*/

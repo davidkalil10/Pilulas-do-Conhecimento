@@ -10,7 +10,7 @@ import 'package:hive/hive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:pilulasdoconhecimento/services/car_service.dart';
 import 'package:pilulasdoconhecimento/widgets/category_tab.dart';
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/categoria.dart';
@@ -33,7 +33,7 @@ class _HomeState extends State<Home> {
   String categoriaSelecionada = "todos";
   late stt.SpeechToText _speech;
   bool _isListening = false;
-
+  bool _isCarParked = true; // Começa como true (seguro)
   Box? _favBox;
   Set<String> favoritos = {};
   String _downloadingId = "";
@@ -44,6 +44,7 @@ class _HomeState extends State<Home> {
     super.initState();
     // Carrega o último carro selecionado das SharedPreferences
     _loadSelectedCar();
+    _checkDrivingState(); // Chama a verificação quando a tela inicia
     _categoriasFuture = fetchCategorias();
     _speech = stt.SpeechToText();
     _searchController.addListener(() {
@@ -54,6 +55,15 @@ class _HomeState extends State<Home> {
       }
     });
     _initHive();
+  }
+
+  Future<void> _checkDrivingState() async {
+    final bool parked = await CarService.isCarParked();
+    if (mounted) {
+      setState(() {
+        _isCarParked = parked;
+      });
+    }
   }
 
   Future<void> _initHive() async {

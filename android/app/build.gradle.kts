@@ -24,7 +24,7 @@ android {
         applicationId = "com.example.pilulasdoconhecimento"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 29
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -37,6 +37,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    implementation ("androidx.car.app:app-automotive:1.7.0")
+    implementation("androidx.car:car:1.0.0-alpha7")
 }
 
 flutter {
