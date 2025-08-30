@@ -1,11 +1,14 @@
 {
   "@@locale": "es",
-  "appTitle": "Píldoras de Conocimiento",
+  "appTitle": "E-Guide",
   "appSubtitle": "¡Tu dosis diaria de aprendizaje sobre tu nuevo Renault!",
   "searchHint": "Buscar videos y temas...",
   "sortButton": "Ordenar por",
   "sortByDate": "Por Fecha",
   "sortByAlphabet": "A-Z",
   "updatedOn": "Actualizado el",
-  "closeButton": "Cerrar"
+  "closeButton": "Cerrar",
+  "appCarSelectionTitle": "cambiar modelo",
+  "carSelectionWelcomeTitle": "Bienvenida",
+  "carSelectionWelcomeSubtitle": "Aquí encontrará guías en video sobre las funciones y características de su Renault. Para comenzar, elija el modelo de su coche."
 }

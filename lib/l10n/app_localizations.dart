@@ -105,7 +105,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Pílulas do Conhecimento'**
+  /// **'E-Guide'**
   String get appTitle;
 
   /// No description provided for @appSubtitle.
@@ -149,6 +149,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Fechar'**
   String get closeButton;
+
+  /// No description provided for @appCarSelectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'trocar modelo'**
+  String get appCarSelectionTitle;
+
+  /// No description provided for @carSelectionWelcomeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Boas-vindas'**
+  String get carSelectionWelcomeTitle;
+
+  /// No description provided for @carSelectionWelcomeSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aqui você encontra guias em vídeo sobre as funções e recursos do seu Renault. Para começar, escolha o modelo do seu carro.'**
+  String get carSelectionWelcomeSubtitle;
 }
 
 class _AppLocalizationsDelegate

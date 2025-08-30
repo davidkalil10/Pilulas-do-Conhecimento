@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Knowledge Pills';
+  String get appTitle => 'E-Guide';
 
   @override
   String get appSubtitle =>
@@ -32,4 +32,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeButton => 'Close';
+
+  @override
+  String get appCarSelectionTitle => 'change model';
+
+  @override
+  String get carSelectionWelcomeTitle => 'Welcome';
+
+  @override
+  String get carSelectionWelcomeSubtitle =>
+      'Here you\'ll find video guides on the features and functions of your Renault. To get started, choose your car model.';
 }

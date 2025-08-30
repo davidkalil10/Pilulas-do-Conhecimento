@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pilulasdoconhecimento/car_selection_screen.dart';
 import 'package:pilulasdoconhecimento/widgets/device_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -11,7 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:pilulasdoconhecimento/widgets/category_tab.dart'; // <-- seu widget customizado
+import 'package:pilulasdoconhecimento/widgets/category_tab.dart';
 import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'package:pilulasdoconhecimento/models/categoria.dart';
 import 'package:pilulasdoconhecimento/models/model_video.dart';
@@ -23,6 +23,7 @@ class Home extends StatefulWidget {
   @override
   State<Home> createState() => _HomeState();
 }
+
 class _HomeState extends State<Home> {
   late Future<Map<String, Categoria>> _categoriasFuture;
   final TextEditingController _searchController = TextEditingController();
@@ -32,17 +33,17 @@ class _HomeState extends State<Home> {
   String categoriaSelecionada = "todos";
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Favoritos
   Box? _favBox;
   Set<String> favoritos = {};
-  String _downloadingId = ""; // id do vídeo que está sendo baixado
-  double _downloadProgress = 0.0; // progresso do download
+  String _downloadingId = "";
+  double _downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
+    // Carrega o último carro selecionado das SharedPreferences
+    _loadSelectedCar();
     _categoriasFuture = fetchCategorias();
     _speech = stt.SpeechToText();
     _searchController.addListener(() {
@@ -65,11 +66,9 @@ class _HomeState extends State<Home> {
   void _playVideo(TutorialVideo video) async {
     final videoTitle = video.getTitulo(context);
     final videoUrl = video.getUrl(context);
-
     bool isFileVideo = false;
     String localPath = "";
 
-    // Somente para Android/iOS (não web)
     if (!kIsWeb) {
       final dir = await getApplicationDocumentsDirectory();
       final filePath = '${dir.path}/${video.id}.mp4';
@@ -89,6 +88,14 @@ class _HomeState extends State<Home> {
     );
   }
 
+  // Função para navegar para a tela de seleção de carro
+  void _navigateToCarSelection() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => CarSelectionScreen()),
+    );
+  }
+
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -104,18 +111,13 @@ class _HomeState extends State<Home> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final Map<String, dynamic> record = data['record'];
-
-        // Salva backup local do JSON em SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('categorias_json', json.encode(record));
-
         return record.map((key, value) =>
             MapEntry(key, Categoria.fromJson(value as Map<String, dynamic>)));
       }
     } catch (e) {
       debugPrint("Falha no fetch remoto: $e");
-
-      // Recupera do SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final recordString = prefs.getString('categorias_json');
       if (recordString != null) {
@@ -132,62 +134,28 @@ class _HomeState extends State<Home> {
     return DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
   }
 
-  // Filtro de vídeos por busca, categoria e ordenação
   List<TutorialVideo> _getFilteredAndSortedVideos(List<TutorialVideo> videos) {
     final languageCode = Localizations.localeOf(context).languageCode;
     List<TutorialVideo> filtered = videos.where((v) {
-      // 1. Se a barra de categoria estiver em "favoritos", só mostra os favoritos
       if (categoriaSelecionada == "favoritos" && !favoritos.contains(v.id)) return false;
-
-      // 2. Bloqueia conteúdos vazios para o idioma atual
       final titulo = v.titulo[languageCode]?.trim() ?? '';
       final subtitulo = v.subtitulo[languageCode]?.trim() ?? '';
       final url = v.url[languageCode]?.trim() ?? '';
       final categoria = v.categoria[languageCode]?.trim() ?? '';
-      bool vazio = titulo.isEmpty || subtitulo.isEmpty || url.isEmpty || categoria.isEmpty;
-      if (vazio) return false;
-
-      // 3. Filtro por categoria, exceto "todos" e "favoritos"
+      if (titulo.isEmpty || subtitulo.isEmpty || url.isEmpty || categoria.isEmpty) return false;
       final catTexto = v.categoria[languageCode] ?? v.categoria['pt'] ?? '';
-      if (
-      categoriaSelecionada != "todos" &&
-          categoriaSelecionada != "favoritos" &&
-          catTexto != categoriaSelecionada
-      ) return false;
-
-      // 4. Filtro de busca
+      if (categoriaSelecionada != "todos" && categoriaSelecionada != "favoritos" && catTexto != categoriaSelecionada) return false;
       if (busca.isEmpty) return true;
       final b = busca.toLowerCase();
-      bool checkMatch(Map<String, dynamic> translations) {
-        for (var text in translations.values) {
-          if (text is String && text.toLowerCase().contains(b)) return true;
-        }
-        return false;
-      }
-      bool checkTagsMatch(Map<String, dynamic> tagTranslations) {
-        for (var tagList in tagTranslations.values) {
-          if (tagList is List) {
-            for (var tag in tagList) {
-              if (tag is String && tag.toLowerCase().contains(b)) {
-                return true;
-              }
-            }
-          }
-        }
-        return false;
-      }
-      return checkMatch(v.titulo) ||
-          checkMatch(v.subtitulo) ||
-          checkTagsMatch(v.tags);
+      bool checkMatch(Map<String, dynamic> translations) => translations.values.any((text) => text is String && text.toLowerCase().contains(b));
+      bool checkTagsMatch(Map<String, dynamic> tagTranslations) => tagTranslations.values.any((tagList) => tagList is List && tagList.any((tag) => tag is String && tag.toLowerCase().contains(b)));
+      return checkMatch(v.titulo) || checkMatch(v.subtitulo) || checkTagsMatch(v.tags);
     }).toList();
 
-    // Ordenação
     if (ordenacao == "Alfabética") {
       filtered.sort((a, b) => a.getTitulo(context).compareTo(b.getTitulo(context)));
     } else {
-      filtered.sort((a, b) =>
-          _parseBrazilDate(b.dataAtualizacao)
-              .compareTo(_parseBrazilDate(a.dataAtualizacao)));
+      filtered.sort((a, b) => _parseBrazilDate(b.dataAtualizacao).compareTo(_parseBrazilDate(a.dataAtualizacao)));
     }
     return filtered;
   }
@@ -195,25 +163,12 @@ class _HomeState extends State<Home> {
   Future<void> _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
-        onStatus: (val) {
-          if (val == "done") {
-            setState(() => _isListening = false);
-          }
-        },
-        onError: (val) {
-          setState(() => _isListening = false);
-        },
+        onStatus: (val) => {if (val == "done") setState(() => _isListening = false)},
+        onError: (val) => setState(() => _isListening = false),
       );
       if (available) {
         setState(() => _isListening = true);
-        _speech.listen(
-          onResult: (val) {
-            setState(() {
-              _searchController.text = val.recognizedWords;
-              busca = val.recognizedWords;
-            });
-          },
-        );
+        _speech.listen(onResult: (val) => setState(() => _searchController.text = val.recognizedWords));
       }
     } else {
       setState(() => _isListening = false);
@@ -232,18 +187,10 @@ class _HomeState extends State<Home> {
     return ["todos", "favoritos", ...categorias];
   }
 
-  // Favoritar/desfavoritar + baixar vídeo se não for web
   Future<void> toggleFavorite(TutorialVideo video) async {
-    print("Toggle favorito: ${video.id}");
-    if (_favBox == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Favoritos não disponíveis, espere carregar..."))
-      );
-      return;
-    }
+    if (_favBox == null) return;
     final isFavorite = favoritos.contains(video.id);
     if (isFavorite) {
-      // Remove favorito e arquivo local
       await _favBox!.delete(video.id);
       if (!kIsWeb) {
         final dir = await getApplicationDocumentsDirectory();
@@ -251,68 +198,45 @@ class _HomeState extends State<Home> {
         if (await f.exists()) await f.delete();
       }
       setState(() => favoritos.remove(video.id));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              kIsWeb
-                  ? "Favorito removido!"
-                  : "Favorito removido e arquivo de vídeo excluído."
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(kIsWeb ? "Favorito removido!" : "Favorito removido e vídeo offline excluído.")));
     } else {
-      // Adiciona favorito e inicia download
       await _favBox!.put(video.id, true);
       setState(() => favoritos.add(video.id));
       if (!kIsWeb) {
-        setState(() {
-          _downloadingId = video.id;
-          _downloadProgress = 0.0;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Baixando vídeo para acesso offline...")),
-        );
-        final dir = await getApplicationDocumentsDirectory();
-        final filePath = '${dir.path}/${video.id}.mp4';
+        setState(() { _downloadingId = video.id; _downloadProgress = 0.0; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Baixando vídeo para acesso offline...")));
         try {
-          await Dio().download(
-            video.getUrl(context),
-            filePath,
-            onReceiveProgress: (received, total) {
-              setState(() {
-                _downloadProgress = (total > 0) ? received / total : 0;
-              });
-            },
-          );
+          final dir = await getApplicationDocumentsDirectory();
+          await Dio().download(video.getUrl(context), '${dir.path}/${video.id}.mp4', onReceiveProgress: (received, total) {
+            setState(() => _downloadProgress = (total > 0) ? received / total : 0);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Vídeo baixado! Favorito salvo.")));
         } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erro ao baixar o vídeo")),
-          );
-          await _favBox!.delete(video.id); // remove favorito se erro
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao baixar o vídeo.")));
+          await _favBox!.delete(video.id);
           setState(() => favoritos.remove(video.id));
+        } finally {
+          setState(() { _downloadingId = ""; _downloadProgress = 0.0; });
         }
-        setState(() {
-          _downloadingId = "";
-          _downloadProgress = 0.0;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Vídeo baixado! Favorito salvo offline.")),
-        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Favorito salvo!!")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Favorito salvo!")));
       }
     }
   }
 
-  // Checar se vídeo está baixado no Android/iOS
-  Future<bool> isVideoDownloaded(TutorialVideo video) async {
-    if (kIsWeb) return false;
-    final dir = await getApplicationDocumentsDirectory();
-    final filePath = '${dir.path}/${video.id}.mp4';
-    return File(filePath).existsSync();
+  Future<void> _loadSelectedCar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? selectedCar = prefs.getString('selectedCar');
+
+    // Se um carro foi encontrado no SharedPreferences, atualiza o estado.
+    if (selectedCar != null) {
+      // Usamos 'mounted' para garantir que o widget ainda existe antes de chamar setState.
+      if (mounted) {
+        setState(() {
+          carroSelecionado = selectedCar;
+        });
+      }
+    }
   }
 
   @override
@@ -324,188 +248,108 @@ class _HomeState extends State<Home> {
       future: _categoriasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
         }
         if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Scaffold(body: Center(child: Text("Falha ao carregar dados. Erro: ${snapshot.error}")));
+          return Scaffold(backgroundColor: Colors.black, body: Center(child: Text("Falha ao carregar dados. Erro: ${snapshot.error}", style: TextStyle(color: Colors.white))));
         }
         final categorias = snapshot.data!;
         final categoriaNomes = categorias.keys.toList();
+
+        // Lógica de seleção inicial do carro.
+        // Isso precisará ser integrado com a sua CarSelectionScreen.
         if (carroSelecionado.isEmpty && categoriaNomes.isNotEmpty) {
           carroSelecionado = categoriaNomes.first;
         }
-        final videos = categorias[carroSelecionado]!.videos;
+
+        final videos = categorias[carroSelecionado]?.videos ?? [];
         final categoriasDoMenu = _buildCategoriasMenu(videos);
         if (!categoriasDoMenu.contains(categoriaSelecionada)) {
           categoriaSelecionada = "todos";
         }
         final filtered = _getFilteredAndSortedVideos(videos);
 
-        final menuLateralWidget = _buildMenuLateral(categorias, categoriaNomes, renaultGold, isMobile);
-
         return Scaffold(
-          key: _scaffoldKey,
           backgroundColor: Colors.black,
-          drawer: isMobile ? Drawer(child: menuLateralWidget) : null,
-          appBar: isMobile
-              ? AppBar(
-            title: Text( //aqui
-                "Renault: "+AppLocalizations.of(context)!.appTitle,
-                style: const TextStyle(color: Colors.white)
+          appBar: isMobile ? AppBar(
+            automaticallyImplyLeading: false, // Remove o botão de voltar/menu padrão
+            title: Row(
+              children: [
+                Image.asset(
+                  'assets/logo_renault.png',
+                  height: 40,
+                  color: Colors.white,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
+                Text( //aqui
+                    AppLocalizations.of(context)!.appTitle + " Renault",
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                ),
+              ],
             ),
-            leading: IconButton(
-              icon: Image.asset(
+            /*leading: Padding(
+              padding:  EdgeInsets.only(left: 5),
+              child: Image.asset(
                 'assets/logo_renault.png',
-                height: 70,
+                height: 50,
                 color: Colors.white,
                 colorBlendMode: BlendMode.srcIn,
               ),
-              onPressed: () {
-                // 3. Use a chave para abrir o Drawer.
-                _scaffoldKey.currentState?.openDrawer();
-              },
-              tooltip: 'Abrir menu de navegação', // Boa prática para acessibilidade
-            ),
+            ),*/
             backgroundColor: Colors.black,
-            iconTheme: IconThemeData(color: Colors.white),
-          )
-              : null,
+            actions: [
+              TextButton.icon(
+                onPressed: _navigateToCarSelection,
+                onLongPress: () => showDeviceInfoDialog(context),
+                icon: Icon(Icons.directions_car_outlined, color: Colors.white, size: 20),
+                label: Text(
+                  AppLocalizations.of(context)!.appCarSelectionTitle,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.white.withOpacity(0.8)),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ) : null,
           body: SafeArea(
             child: isMobile
                 ? _buildMobileLayout(filtered, renaultGold, categoriasDoMenu)
-                : _buildDesktopLayout(menuLateralWidget, filtered, renaultGold, categoriasDoMenu),
+                : _buildDesktopLayout(filtered, renaultGold, categoriasDoMenu),
           ),
         );
       },
     );
   }
 
-  Widget _buildMenuLateral(Map<String, Categoria> categorias, List<String> categoriaNomes, Color renaultGold, bool isMobile) {
-    return Container(
-      width: isMobile ? 280 : 180,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: isMobile ? null : Border(right: BorderSide(width: 1.5, color: renaultGold)),
-      ),
+  Widget _buildDesktopLayout(List<TutorialVideo> filtered, Color renaultGold, List<String> categoriasDoMenu) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 28),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: renaultGold, shape: BoxShape.circle),
-                    child: Image.asset('assets/logo_renault.png', height: 36, color: Colors.white, colorBlendMode: BlendMode.srcIn),
-                  ),
-                ),
-                ...categoriaNomes.map((carro) {
-                  final selected = carro == carroSelecionado;
-                  final thumbnail = categorias[carro]!.thumbnail;
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        carroSelecionado = carro;
-                        categoriaSelecionada = "todos";
-                      });
-                      if (isMobile) Navigator.of(context).pop();
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: selected ? Colors.grey[850] : null,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: thumbnail.isNotEmpty
-                                ? Image.network(thumbnail, width: 72, height: 54, fit: BoxFit.cover)
-                                : Icon(Icons.directions_car, size: 50, color: selected ? renaultGold : Colors.white70),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            carro,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                              color: selected ? renaultGold : Colors.white,
-                              fontSize: 17,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GestureDetector(
-              child: Text(
-                "Desenvolvido por David Kalil Braga",
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.4),
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              onTap: () => showDeviceInfoDialog(context),
-            ),
-          ),
+          _buildHeader(renaultGold),
+          const SizedBox(height: 18),
+          _buildSearchBar(renaultGold),
+          const SizedBox(height: 14),
+          _buildCategoriasHorizontal(categoriasDoMenu, renaultGold),
+          const SizedBox(height: 18),
+          _buildCardsGrid(filtered, renaultGold, isDesktop: true),
         ],
       ),
     );
   }
 
-  Widget _buildDesktopLayout(
-      Widget menuLateral,
-      List<TutorialVideo> filtered,
-      Color renaultGold,
-      List<String> categoriasDoMenu
-      ) {
-    bool isMobile =false;
-    return Row(
-      children: [
-        menuLateral,
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(renaultGold,isMobile),
-                const SizedBox(height: 18),
-                _buildSearchBar(renaultGold),
-                const SizedBox(height: 14),
-                _buildCategoriasHorizontal(categoriasDoMenu, renaultGold),
-                const SizedBox(height: 18),
-                _buildCardsGrid(filtered, renaultGold, isDesktop: true),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileLayout(
-      List<TutorialVideo> filtered,
-      Color renaultGold,
-      List<String> categoriasDoMenu
-      ) {
-    bool isMobile = true;
+  Widget _buildMobileLayout(List<TutorialVideo> filtered, Color renaultGold, List<String> categoriasDoMenu) {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        _buildHeader(renaultGold,isMobile),
+        Padding( // Subtítulo para mobile
+          padding: EdgeInsets.only(left: 5, bottom: 8),
+          child: Text(
+            AppLocalizations.of(context)!.appSubtitle,
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white70),
+          ),
+        ),
         const SizedBox(height: 12),
         _buildSearchBar(renaultGold),
         const SizedBox(height: 12),
@@ -519,62 +363,46 @@ class _HomeState extends State<Home> {
             ),
           )
         else
-          ...filtered.map((video) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: TutorialCardPremium(
-                video: video,
-                renaultGold: renaultGold,
-                onPlay: () => _playVideo(video),
-                dark: true,
-                isFavorite: favoritos.contains(video.id),
-                onFavorite: () => toggleFavorite(video),
-                isDownloading: _downloadingId == video.id,
-                downloadProgress: _downloadProgress,
-              ),
-            );
-          }).toList(),
+          ...filtered.map((video) => Padding(
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: TutorialCardPremium(
+              video: video,
+              renaultGold: renaultGold,
+              onPlay: () => _playVideo(video),
+              dark: true,
+              isFavorite: favoritos.contains(video.id),
+              onFavorite: () => toggleFavorite(video),
+              isDownloading: _downloadingId == video.id,
+              downloadProgress: _downloadProgress,
+            ),
+          )).toList(),
       ],
     );
   }
 
-  Widget _buildHeader(Color renaultGold, bool isMobile) {
-    print("o layout é:"+isMobile.toString());
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader(Color renaultGold) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        !isMobile ?
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/logo_renault.png',
-              height: 50,
-              color: Colors.white,
-              colorBlendMode: BlendMode.srcIn,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              "Renault: " + AppLocalizations.of(context)!.appTitle,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 30,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ) :Container(),
-        !isMobile?
-        const SizedBox(height: 2):Container(),
-        Padding(
-          padding: EdgeInsets.only(left: 5),
-          child: Text(
-            AppLocalizations.of(context)!.appSubtitle,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 18,
-              color: Colors.white70,
-            ),
+        Image.asset('assets/logo_renault.png', height: 35, color: Colors.white),
+        const SizedBox(width: 16),
+        Text(
+          AppLocalizations.of(context)!.appTitle + " Renault",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Colors.white),
+        ),
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: _navigateToCarSelection,
+          onLongPress: () => showDeviceInfoDialog(context),
+          icon: Icon(Icons.directions_car_outlined, color: Colors.white, size: 20),
+          label: Text(
+            AppLocalizations.of(context)!.appCarSelectionTitle,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF2d2d2d),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ],
@@ -596,10 +424,7 @@ class _HomeState extends State<Home> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: _isListening ? renaultGold : Colors.white54,
-                    ),
+                    icon: Icon(_isListening ? Icons.mic : Icons.mic_none, color: _isListening ? renaultGold : Colors.white54),
                     onPressed: _listen,
                   ),
                   if (busca.isNotEmpty)
@@ -621,14 +446,8 @@ class _HomeState extends State<Home> {
           icon: Icon(Icons.sort, color: Colors.white, size: 30),
           onSelected: (v) => setState(() => ordenacao = v),
           itemBuilder: (ctx) => [
-            PopupMenuItem(
-              value: "Data",
-              child: Text(AppLocalizations.of(context)!.sortByDate),
-            ),
-            PopupMenuItem(
-              value: "Alfabética",
-              child: Text(AppLocalizations.of(context)!.sortByAlphabet),
-            ),
+            PopupMenuItem(value: "Data", child: Text(AppLocalizations.of(context)!.sortByDate)),
+            PopupMenuItem(value: "Alfabética", child: Text(AppLocalizations.of(context)!.sortByAlphabet)),
           ],
         ),
       ],
@@ -656,15 +475,15 @@ class _HomeState extends State<Home> {
                 color: categoriaSelecionada == 'favoritos' ? Colors.white : Colors.white,
               )
             else
-            CategoryTab(
-              label: categoriasDoMenu[i],
-              selected: categoriasDoMenu[i] == categoriaSelecionada,
-              isFirst: i == 0,
-              isLast: i == categoriasDoMenu.length - 1,
-              height: tabHeight,
-              horizontalPadding: horizontalPad,
-              onTap: () => setState(() => categoriaSelecionada = categoriasDoMenu[i]),
-            ),
+              CategoryTab(
+                label: categoriasDoMenu[i],
+                selected: categoriasDoMenu[i] == categoriaSelecionada,
+                isFirst: i == 0,
+                isLast: i == categoriasDoMenu.length - 1,
+                height: tabHeight,
+                horizontalPadding: horizontalPad,
+                onTap: () => setState(() => categoriaSelecionada = categoriasDoMenu[i]),
+              ),
             if (i < categoriasDoMenu.length - 1)
               Text(
                 '/',
@@ -683,31 +502,35 @@ class _HomeState extends State<Home> {
 
   Widget _buildCardsGrid(List<TutorialVideo> filtered, Color renaultGold, {required bool isDesktop}) {
     if (filtered.isEmpty) {
-      return const Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white)));
+      return const Expanded(child: Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white))));
     }
     return Expanded(
       child: isDesktop
           ? LayoutBuilder(
         builder: (context, constraints) {
-          double itemWidth = (constraints.maxWidth - 22) / 2;
-          return SingleChildScrollView(
-            child: Wrap(
-              spacing: 22,
-              runSpacing: 20,
-              children: filtered.map((v) => SizedBox(
-                width: itemWidth,
-                child: TutorialCardPremium(
-                  video: v,
-                  renaultGold: renaultGold,
-                  onPlay: () => _playVideo(v),
-                  dark: true,
-                  isFavorite: favoritos.contains(v.id),
-                  onFavorite: () => toggleFavorite(v),
-                  isDownloading: _downloadingId == v.id,
-                  downloadProgress: _downloadProgress,
-                ),
-              )).toList(),
+          int crossAxisCount = (constraints.maxWidth / 400).floor().clamp(1, 4);
+          double spacing = 22.0;
+          return GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: 1.6,
             ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final video = filtered[index];
+              return TutorialCardPremium(
+                video: video,
+                renaultGold: renaultGold,
+                onPlay: () => _playVideo(video),
+                dark: true,
+                isFavorite: favoritos.contains(video.id),
+                onFavorite: () => toggleFavorite(video),
+                isDownloading: _downloadingId == video.id,
+                downloadProgress: _downloadProgress,
+              );
+            },
           );
         },
       )

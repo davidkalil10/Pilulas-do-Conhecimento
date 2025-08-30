@@ -9,7 +9,7 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'Pilules de Savoir';
+  String get appTitle => 'E-Guide';
 
   @override
   String get appSubtitle =>
@@ -32,4 +32,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get closeButton => 'Fermer';
+
+  @override
+  String get appCarSelectionTitle => 'changer de modèle';
+
+  @override
+  String get carSelectionWelcomeTitle => 'Bienvenue';
+
+  @override
+  String get carSelectionWelcomeSubtitle =>
+      'Ici, vous trouverez des guides vidéo sur les fonctionnalités de votre Renault. Pour commencer, choisissez le modèle de votre voiture.';
 }

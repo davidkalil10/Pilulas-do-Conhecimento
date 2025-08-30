@@ -1,11 +1,14 @@
 {
   "@@locale": "en",
-  "appTitle": "Knowledge Pills",
+  "appTitle": "E-Guide",
   "appSubtitle": "Your daily dose of learning about your new Renault!",
   "searchHint": "Search videos and topics...",
   "sortButton": "Sort by",
   "sortByDate": "By Date",
   "sortByAlphabet": "A-Z",
   "updatedOn": "Updated on",
-  "closeButton": "Close"
+  "closeButton": "Close",
+  "appCarSelectionTitle": "change model",
+  "carSelectionWelcomeTitle": "Welcome",
+  "carSelectionWelcomeSubtitle": "Here you'll find video guides on the features and functions of your Renault. To get started, choose your car model."
 }
