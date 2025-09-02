@@ -360,7 +360,8 @@ class _HomeState extends State<Home> {
           const SizedBox(height: 18),
         //  _buildCardsGrid(filtered, renaultGold, isDesktop: true),
           if (_viewMode == 'grid')
-          _buildCardsGridGridMode(filtered, renaultGold, isDesktop: true),
+         // _buildCardsGridGridMode(filtered, renaultGold, isDesktop: true),
+          _buildCardsGrid(filtered, renaultGold, isDesktop: true),
           if (_viewMode != 'grid')
             _buildCardsListMode(filtered, renaultGold)
         ],
