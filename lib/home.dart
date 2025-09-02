@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pilulasdoconhecimento/car_selection_screen.dart';
 import 'package:pilulasdoconhecimento/widgets/device_info.dart';
+import 'package:pilulasdoconhecimento/widgets/tutorial_list_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:hive/hive.dart';
@@ -38,6 +39,7 @@ class _HomeState extends State<Home> {
   Set<String> favoritos = {};
   String _downloadingId = "";
   double _downloadProgress = 0.0;
+  String _viewMode = 'grid'; // default
 
   @override
   void initState() {
@@ -47,6 +49,7 @@ class _HomeState extends State<Home> {
     _checkDrivingState(); // Chama a verificação quando a tela inicia
     _categoriasFuture = fetchCategorias();
     _speech = stt.SpeechToText();
+    _loadViewMode();
     _searchController.addListener(() {
       if (busca != _searchController.text) {
         setState(() {
@@ -55,6 +58,18 @@ class _HomeState extends State<Home> {
       }
     });
     _initHive();
+  }
+
+  Future<void> _loadViewMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final vm = prefs.getString('viewMode') ?? 'grid';
+    setState(() { _viewMode = vm; });
+  }
+
+  Future<void> _saveViewMode(String vm) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('viewMode', vm);
+    setState(() { _viewMode = vm; });
   }
 
   Future<void> _checkDrivingState() async {
@@ -343,7 +358,11 @@ class _HomeState extends State<Home> {
           const SizedBox(height: 14),
           _buildCategoriasHorizontal(categoriasDoMenu, renaultGold),
           const SizedBox(height: 18),
-          _buildCardsGrid(filtered, renaultGold, isDesktop: true),
+        //  _buildCardsGrid(filtered, renaultGold, isDesktop: true),
+          if (_viewMode == 'grid')
+          _buildCardsGridGridMode(filtered, renaultGold, isDesktop: true),
+          if (_viewMode != 'grid')
+            _buildCardsListMode(filtered, renaultGold)
         ],
       ),
     );
@@ -415,6 +434,26 @@ class _HomeState extends State<Home> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Visualização em grade',
+                icon: Icon(Icons.grid_view,
+                    color: _viewMode == 'grid' ? renaultGold : Colors.white54),
+                onPressed: () {
+                  _saveViewMode('grid');
+                },
+              ),
+              IconButton(
+                tooltip: 'Visualização em lista',
+                icon: Icon(Icons.view_list,
+                    color: _viewMode == 'list' ? renaultGold : Colors.white54),
+                onPressed: () {
+                  _saveViewMode('list');
+                },
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -565,4 +604,75 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+
+  Widget _buildCardsGridGridMode(List<TutorialVideo> filtered, Color renaultGold, {required bool isDesktop}) {
+    if (filtered.isEmpty) {
+      return const Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white)));
+    }
+    // Mantém a lógica anterior de grid (wrap)
+    return Expanded(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          double itemWidth = (constraints.maxWidth - 22) / 2;
+          return SingleChildScrollView(
+            child: Wrap(
+              spacing: 22,
+              runSpacing: 20,
+              children: filtered.map((v) => SizedBox(
+                width: itemWidth,
+                child: TutorialCardPremium(
+                  video: v,
+                  renaultGold: renaultGold,
+                  onPlay: () {
+                    final String videoTitle = v.getTitulo(context);
+                    final String videoUrl = v.getUrl(context);
+                    showDialog(context: context, builder: (_) => VideoDialog(url: videoUrl, title: videoTitle, isFile: false));
+                  },
+                  dark: true,
+                  isFavorite: favoritos.contains(v.id),
+                  onFavorite: () => toggleFavorite(v),
+                  isDownloading: _downloadingId == v.id,
+                  downloadProgress: _downloadProgress,
+                ),
+              )).toList(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardsListMode(List<TutorialVideo> filtered, Color renaultGold) {
+    if (filtered.isEmpty) {
+      return const Center(child: Text("Nenhum vídeo encontrado.", style: TextStyle(fontSize: 18, color: Colors.white)));
+    }
+    // Lista vertical com itens
+    return Expanded(
+      child: ListView.builder(
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final v = filtered[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+            child: TutorialListItem(
+              video: v,
+              renaultGold: renaultGold,
+              onPlay: () {
+                final String videoTitle = v.getTitulo(context);
+                final String videoUrl = v.getUrl(context);
+                // verifica se existe arquivo local — se quiser usar offline, reuso da função _playVideo mencionada antes
+                showDialog(context: context, builder: (_) => VideoDialog(url: videoUrl, title: videoTitle, isFile: false));
+              },
+              isFavorite: favoritos.contains(v.id),
+              onFavorite: () => toggleFavorite(v),
+              isDownloading: _downloadingId == v.id,
+              downloadProgress: _downloadProgress,
+              dark: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
 }
