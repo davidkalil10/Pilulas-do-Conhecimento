@@ -360,8 +360,8 @@ class _HomeState extends State<Home> {
           const SizedBox(height: 18),
         //  _buildCardsGrid(filtered, renaultGold, isDesktop: true),
           if (_viewMode == 'grid')
-         // _buildCardsGridGridMode(filtered, renaultGold, isDesktop: true),
-          _buildCardsGrid(filtered, renaultGold, isDesktop: true),
+          _buildCardsGridGridMode(filtered, renaultGold, isDesktop: true),
+        //  _buildCardsGrid(filtered, renaultGold, isDesktop: true),
           if (_viewMode != 'grid')
             _buildCardsListMode(filtered, renaultGold)
         ],
@@ -624,11 +624,7 @@ class _HomeState extends State<Home> {
                 child: TutorialCardPremium(
                   video: v,
                   renaultGold: renaultGold,
-                  onPlay: () {
-                    final String videoTitle = v.getTitulo(context);
-                    final String videoUrl = v.getUrl(context);
-                    showDialog(context: context, builder: (_) => VideoDialog(url: videoUrl, title: videoTitle, isFile: false));
-                  },
+                  onPlay: () => _playVideo(v),
                   dark: true,
                   isFavorite: favoritos.contains(v.id),
                   onFavorite: () => toggleFavorite(v),
@@ -658,12 +654,7 @@ class _HomeState extends State<Home> {
             child: TutorialListItem(
               video: v,
               renaultGold: renaultGold,
-              onPlay: () {
-                final String videoTitle = v.getTitulo(context);
-                final String videoUrl = v.getUrl(context);
-                // verifica se existe arquivo local — se quiser usar offline, reuso da função _playVideo mencionada antes
-                showDialog(context: context, builder: (_) => VideoDialog(url: videoUrl, title: videoTitle, isFile: false));
-              },
+              onPlay: () => _playVideo(v),
               isFavorite: favoritos.contains(v.id),
               onFavorite: () => toggleFavorite(v),
               isDownloading: _downloadingId == v.id,
