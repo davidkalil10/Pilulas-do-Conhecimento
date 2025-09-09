@@ -4,6 +4,8 @@ import 'package:pilulasdoconhecimento/l10n/app_localizations.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pilulasdoconhecimento/home.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Um modelo simples para guardar a informação do carro
 class CarInfo {
@@ -29,10 +31,39 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     _carsFuture = _fetchCars();
   }
 
-  // Função para buscar apenas os nomes e thumbnails dos carros
-  Future<List<CarInfo>> _fetchCars() async {
+  //retonar a url para testar container
+  String getBaseUrl() {
+
     const String binId = '689c0085ae596e708fc8b523';
     const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
+   // const String url = "https://pilulas-backend-latest.onrender.com";
+
+    // Para testes locais, usamos endereços diferentes dependendo da plataforma.
+    // kIsWeb é para Flutter Web.
+    if (kIsWeb) {
+     // return 'http://localhost:8000';
+      return url;
+    }
+
+    // Platform.is... é para apps nativos.
+    if (Platform.isAndroid) {
+      // O emulador Android usa este IP especial para acessar o 'localhost' da sua máquina.
+     // return 'http://10.0.2.2:8000';
+    return url;
+    }
+
+    // Para outras plataformas como Windows/macOS/Linux Desktop
+   // return 'http://localhost:8000';
+    return url;
+  }
+
+  // Função para buscar apenas os nomes e thumbnails dos carros
+  Future<List<CarInfo>> _fetchCars() async {
+
+    final String baseUrl = getBaseUrl();
+   // final String url = '$baseUrl/conteudo'; // para o docker
+    final String url = baseUrl; //para o jsonbin
+
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {

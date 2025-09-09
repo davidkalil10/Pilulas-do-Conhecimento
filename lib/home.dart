@@ -127,9 +127,36 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  Future<Map<String, Categoria>> fetchCategorias() async {
+  //retonar a url para testar container
+  String getBaseUrl() {
+
     const String binId = '689c0085ae596e708fc8b523';
     const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
+   // const String url = "https://pilulas-backend-latest.onrender.com";
+
+    // Para testes locais, usamos endereços diferentes dependendo da plataforma.
+    // kIsWeb é para Flutter Web.
+    if (kIsWeb) {
+    //  return 'http://localhost:8000';
+      return url;
+    }
+
+    // Platform.is... é para apps nativos.
+    if (Platform.isAndroid) {
+      // O emulador Android usa este IP especial para acessar o 'localhost' da sua máquina.
+     // return 'http://10.0.2.2:8000';
+      return url;
+    }
+
+    // Para outras plataformas como Windows/macOS/Linux Desktop
+    //return 'http://localhost:8000';
+    return url;
+  }
+
+  Future<Map<String, Categoria>> fetchCategorias() async {
+    final String baseUrl = getBaseUrl();
+    // final String url = '$baseUrl/conteudo'; //para o docker
+    final String url = baseUrl; //para o jsonbin
 
     try {
       final response = await http.get(Uri.parse(url));
