@@ -7,7 +7,7 @@
         android:name="android.hardware.type.automotive"
         android:required="true" />
     <application
-        android:label="E-Guide Renault"
+        android:label="Know &amp; Go"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -68,6 +68,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     final String baseUrl = getBaseUrl();
    // final String url = '$baseUrl/conteudo'; // para o docker
     final String url = baseUrl; //para o jsonbin
+    print("Aqui esta a URL: " +url);
 
     final response = await http.get(Uri.parse(url));
 
