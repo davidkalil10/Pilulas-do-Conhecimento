@@ -105,7 +105,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In pt, this message translates to:
-  /// **'E-Guide'**
+  /// **'Know & Go'**
   String get appTitle;
 
   /// No description provided for @appSubtitle.

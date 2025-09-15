@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pilulasdoconhecimento/car_selection_screen.dart';
+import 'package:pilulasdoconhecimento/services/config_loader.dart';
 import 'package:pilulasdoconhecimento/widgets/device_info.dart';
 import 'package:pilulasdoconhecimento/widgets/tutorial_list_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -130,8 +131,12 @@ class _HomeState extends State<Home> {
   //retonar a url para testar container
   String getBaseUrl() {
 
-    const String binId = '689c0085ae596e708fc8b523';
-    const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
+   // const String binId = '689c0085ae596e708fc8b523';
+   // const String url = 'https://api.jsonbin.io/v3/b/$binId/latest';
+
+    final String binId = AppConfig.instance.apiBinId;
+    final String url = AppConfig.instance.apiUrl + '$binId/latest';
+
    // const String url = "https://pilulas-backend-latest.onrender.com";
 
     // Para testes locais, usamos endereços diferentes dependendo da plataforma.
@@ -334,7 +339,7 @@ class _HomeState extends State<Home> {
                   colorBlendMode: BlendMode.srcIn,
                 ),
                 Text( //aqui
-                    AppLocalizations.of(context)!.appTitle + " Renault",
+                    AppLocalizations.of(context)!.appTitle,
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -444,7 +449,7 @@ class _HomeState extends State<Home> {
         Image.asset('assets/logo_renault.png', height: 35, color: Colors.white),
         const SizedBox(width: 16),
         Text(
-          AppLocalizations.of(context)!.appTitle + " Renault",
+          AppLocalizations.of(context)!.appTitle,
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Colors.white),
         ),
         const Spacer(),

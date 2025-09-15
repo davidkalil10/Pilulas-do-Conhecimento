@@ -9,7 +9,7 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'E-Guide';
+  String get appTitle => 'Know & Go';
 
   @override
   String get appSubtitle =>

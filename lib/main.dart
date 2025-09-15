@@ -7,6 +7,7 @@ import 'package:pilulasdoconhecimento/l10n/app_localizations.dart'; // Import re
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pilulasdoconhecimento/services/config_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async{
@@ -21,6 +22,7 @@ void main() async{
   final prefs = await SharedPreferences.getInstance();
   final selectedCar = prefs.getString('selectedCar');
 
+    await AppConfig.load(); 
   runApp(MyApp(selectedCar: selectedCar)); // <-- CORREÇÃO AQUI
 }
 class MyApp extends StatelessWidget {
